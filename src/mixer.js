@@ -22,6 +22,13 @@ export const FINISHES = {
     camera: [28, [-1.5, 20, 18.5], [0.3, 0, 0.2]], focusView: { pos: [1, 8, 12], target: [2.4, 0, 0.8] },
     ui: { paper: '#ebebe8', ink: '#161616', muted: '#55565a', accent: '#e8480a' },
   },
+  steel: {
+    panel: '#b4b4b0', panelMetal: 1, panelRough: 0.32, ink: '#101010', chassis: 0x2c2d2f, grain: 'satin',
+    knob: 'black', capColors: null, fader: 0x161616, background: 0x8f8e8a, table: '#8f8e8a', tablePlain: true,
+    meter: 'amber', meterGain: 1.35, key: 0xffffff, keyPos: [-7, 18, 8], keyIntensity: 0.9, environment: 0.76, bloom: [0.12, 0.4, 1],
+    camera: [28, [-1.5, 20, 18.5], [0.3, 0, 0.2]], focusView: { pos: [1, 8, 12], target: [2.4, 0, 0.8] },
+    ui: { paper: '#ebebe8', ink: '#161616', muted: '#55565a', accent: '#e8480a' },
+  },
   studio: {
     panel: '#17181a', panelMetal: 0.45, panelRough: 0.5, ink: '#d9d9d3', chassis: 0x0c0c0d, grain: 'speckle',
     knob: 'cap', capColors: [0xc8321e, 0x2f5f9e, 0x3f7d4f], fader: 0xd6d6d0, background: 0x050506, table: '#17110c',
@@ -59,7 +66,7 @@ export function panelTexture(f) {
       }
     } else {
       for (let i = 0; i < 26000; i++) {
-        ctx.fillStyle = `rgba(${Math.random() > 0.5 ? '255,255,255' : '0,0,0'},${Math.random() * 0.045})`;
+        ctx.fillStyle = `rgba(${Math.random() > 0.5 ? '255,255,255' : '0,0,0'},${Math.random() * (f.grain === 'satin' ? 0.012 : 0.045)})`;
         ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
       }
     }
@@ -139,7 +146,7 @@ export function grainTexture(f) {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
     for (let i = 0; i < 12000; i++) {
-      const v = 150 + Math.random() * 105;
+      const v = f.grain === 'satin' ? 228 + Math.random() * 27 : 150 + Math.random() * 105;
       ctx.fillStyle = `rgb(${v},${v},${v})`;
       if (f.grain === 'brushed') ctx.fillRect(Math.random() * w - 80, Math.random() * h, 80 + Math.random() * 500, 1);
       else ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
