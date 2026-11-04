@@ -5,6 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createConsole } from './console.js';
+import { initSound } from './sound.js';
 
 await Promise.all(['800 100px Archivo', '500 30px "Geist Mono"', '76px "Permanent Marker"'].map((f) => document.fonts.load(f)));
 
@@ -107,6 +108,7 @@ addEventListener('pointermove', (e) => {
   pointer.set((e.clientX / innerWidth) * 2 - 1, 1 - (e.clientY / innerHeight) * 2);
 });
 
+initSound();
 fit();
 renderer.setAnimationLoop((now) => {
   frame(clock.getElapsedTime());

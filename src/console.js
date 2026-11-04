@@ -9,8 +9,10 @@ import {
 } from './mixer.js';
 import { CONTENT, MASTER } from './projects.js';
 import { showPanel, hidePanel } from './panel.js';
+import { plugIn, plugOut, knobClick, faderTick } from './sound.js';
 
 const KNOB_SWEEP = Math.PI * 1.5;
+const KNOB_NOTCHES = 10;
 const STEP_COOLDOWN = 600;
 const WHEEL_TRAVEL = 300;
 const WHEEL_QUIET = 140;
@@ -123,6 +125,9 @@ export function createConsole() {
       cap,
       value: 0,
       goal: 0,
+      notches: CONTENT[i].stops.length - 1,
+      notch: 0,
+      sound: faderTick,
       place(v) {
         const z = FADER_TOP + v * FADER_TRAVEL;
         cap.position.z = z;
@@ -184,6 +189,9 @@ export function createConsole() {
   controls[MASTER] = {
     value: 0,
     goal: 0,
+    notches: KNOB_NOTCHES,
+    notch: 0,
+    sound: knobClick,
     place(v) {
       masterKnob.rotation.y = (0.5 - v) * KNOB_SWEEP;
     },
@@ -262,6 +270,7 @@ export function createConsole() {
       patch.from = patchPlug.position.x;
       patch.to = stripX(entry);
       patch.t = 0;
+      plugOut();
     }
     hint.hidden = entry !== HOME;
     refresh();
@@ -434,6 +443,11 @@ export function createConsole() {
         if (Math.abs(control.goal - control.value) > 0.001) this.shadowsDirty = true;
         control.value += (control.goal - control.value) * (1 - Math.exp(-dt * 16));
         control.place(control.value);
+        const notch = Math.round(control.value * control.notches);
+        if (notch !== control.notch) {
+          control.notch = notch;
+          control.sound();
+        }
       });
       meters.forEach((meter, i) => {
         const drive = 1 - 0.55 * controls[i].value;
@@ -448,6 +462,7 @@ export function createConsole() {
         patch.t = Math.min(patch.t + dt * 1.7, 1);
         const smooth = patch.t * patch.t * (3 - 2 * patch.t);
         updateCable(THREE.MathUtils.lerp(patch.from, patch.to, smooth), Math.sin(patch.t * Math.PI) * 1.5);
+        if (patch.t === 1) plugIn();
       }
     },
   };
