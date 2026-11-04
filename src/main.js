@@ -4,7 +4,11 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { SCENES } from './scenes.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { SCENES as OBJECTS } from './scenes.js';
+import { MIXERS } from './mixer.js';
+
+const SCENES = { ...MIXERS, ...OBJECTS };
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.toneMapping = THREE.NeutralToneMapping;
@@ -38,6 +42,11 @@ function show(next) {
   const target = new THREE.WebGLRenderTarget(1, 1, { samples: 4, type: THREE.HalfFloatType });
   composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(current.scene, current.camera));
+  if (current.focus) {
+    const [aperture, maxblur] = current.focus;
+    const focus = current.camera.position.distanceTo(current.target);
+    composer.addPass(new BokehPass(current.scene, current.camera, { focus, aperture, maxblur }));
+  }
   const [strength, radius, threshold] = current.bloom;
   if (strength > 0) composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), strength, radius, threshold));
   composer.addPass(new OutputPass());
@@ -74,7 +83,7 @@ addEventListener('pointermove', (e) => {
   pointer.set((e.clientX / innerWidth) * 2 - 1, 1 - (e.clientY / innerHeight) * 2);
 });
 
-await Promise.all(['600 100px "Inter Tight"', '800 100px Archivo', '500 40px "Cormorant Garamond"', '500 30px "Geist Mono"'].map((f) => document.fonts.load(f)));
+await Promise.all(['600 100px "Inter Tight"', '800 100px Archivo', '500 40px "Cormorant Garamond"', '500 30px "Geist Mono"', '76px "Permanent Marker"'].map((f) => document.fonts.load(f)));
 
 const bar = document.querySelector('#bar');
 Object.keys(SCENES).forEach((key) => {
