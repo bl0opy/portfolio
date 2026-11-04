@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ayan Chandrasekaran</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600&family=Archivo:wdth,wght@62..125,100..900&family=Cormorant+Garamond:wght@500&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  :root { --ink: #f4f2ea; --bar: rgba(10, 10, 10, 0.72); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0b0b; }
+  canvas { display: block; touch-action: none; }
+  #bar {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    display: flex; gap: 4px; padding: 4px; background: var(--bar); backdrop-filter: blur(12px);
+    font: 13px "Geist Mono", monospace;
+  }
+  #bar button { all: unset; cursor: pointer; padding: 6px 12px; color: var(--ink); }
+  #bar button[aria-pressed="true"] { background: var(--ink); color: #0b0b0b; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<nav id="bar" aria-label="Direction"></nav>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
