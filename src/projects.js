@@ -178,4 +178,41 @@ export const CONTENT = [
       },
     ],
   },
+  {
+    title: 'Ayan Chandrasekaran',
+    short: 'AYAN C.',
+    code: 'MASTER',
+    tag: 'CS and Music, Michigan',
+    stops: [
+      {
+        label: 'ABOUT',
+        text: 'I build at the intersection of software, hardware and sound. B.S. Computer Science at the University of Michigan with a minor in Music, graduating May 2028.',
+        specs: [
+          ['Languages', 'Python, TypeScript, C/C++, Swift, Java, SQL'],
+          ['Focus', 'ML and computer vision, agentic systems, digital signal processing, real-time interfaces'],
+        ],
+      },
+      {
+        label: 'WORK',
+        text: 'What I do outside these channels:',
+        specs: [
+          ['Smith+Nephew', 'ML and CV intern for surgical robotics, two summers. ResNet-50 pressure ulcer staging at 74% vs 67% clinician accuracy on high-confidence predictions'],
+          ['Emanate', 'Founder. Interactive concert visuals in C++ and Python: gesture-controlled granular synthesis and projection mapping'],
+          ['MMBC', 'Director of Creative Technology. Real-time visuals for a 500+ attendee conference'],
+          ['Google Student Developers', 'Project Manager. Alert pipeline for HomeRise, a shelter network with 18 San Francisco locations'],
+        ],
+      },
+      {
+        label: 'LINKS',
+        links: [
+          { label: 'GitHub', url: 'https://github.com/bl0opy' },
+          { label: 'LinkedIn', url: 'https://linkedin.com/in/ayanchan/' },
+          { label: 'R\u00e9sum\u00e9', url: 'https://bl0opy.github.io/resume/' },
+          { label: 'ayanchan@umich.edu', url: 'mailto:ayanchan@umich.edu' },
+        ],
+      },
+    ],
+  },
 ];
+
+export const MASTER = CONTENT.length - 1;
