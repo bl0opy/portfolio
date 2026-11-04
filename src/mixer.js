@@ -31,41 +31,6 @@ export const STEEL = {
   fov: 28,
 };
 
-function micIcon(ctx, x, z, u) {
-  ctx.save();
-  ctx.translate(x, z);
-  ctx.scale(u, u);
-  ctx.fillStyle = STEEL.ink;
-  ctx.strokeStyle = STEEL.ink;
-  ctx.lineWidth = 0.05;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.roundRect(-0.14, -0.52, 0.28, 0.58, 0.14);
-  ctx.fill();
-  ctx.strokeStyle = STEEL.panel;
-  ctx.lineWidth = 0.022;
-  [-0.34, -0.24, -0.14].forEach((y) => {
-    ctx.beginPath();
-    ctx.moveTo(-0.07, y);
-    ctx.lineTo(0.07, y);
-    ctx.stroke();
-  });
-  ctx.strokeStyle = STEEL.ink;
-  ctx.lineWidth = 0.05;
-  ctx.beginPath();
-  ctx.arc(0, -0.08, 0.225, 0, Math.PI);
-  ctx.moveTo(-0.225, -0.08);
-  ctx.lineTo(-0.225, -0.16);
-  ctx.moveTo(0.225, -0.08);
-  ctx.lineTo(0.225, -0.16);
-  ctx.moveTo(0, 0.145);
-  ctx.lineTo(0, 0.36);
-  ctx.moveTo(-0.15, 0.4);
-  ctx.lineTo(0.15, 0.4);
-  ctx.stroke();
-  ctx.restore();
-}
-
 export function panelTexture() {
   return canvasTexture(4096, 2503, (ctx, w, h) => {
     const u = w / W;
@@ -134,11 +99,10 @@ export function panelTexture() {
     ctx.textAlign = 'left';
     ctx.fontStretch = 'expanded';
     ctx.font = `800 ${u}px Archivo`;
-    const titleSize = 2.28 / (ctx.measureText('PORTFOLIO').width / u);
+    const titleSize = 2.94 / (ctx.measureText('PORTFOLIO').width / u);
     ctx.font = `800 ${titleSize * u}px Archivo`;
     ['AYAN C.', 'PORTFOLIO'].forEach((line, i) => ctx.fillText(line, X(-8.72), Z(-4.72 + i * titleSize * 1.04)));
     ctx.fontStretch = 'normal';
-    micIcon(ctx, X(-6.03), Z(-4.72 + titleSize * 0.52), u);
     mono(0.16);
     ctx.fillText('MODEL AC-26', X(-8.72), Z(-3.34));
     ctx.textAlign = 'center';
