@@ -1,46 +1,130 @@
-const img = (file, alt) => ({ src: `assets/projects/${file}`, alt });
-
 // One entry per mixer channel. Each stop is a detent on that channel's fader, bottom to top.
 export const CONTENT = [
   {
     title: 'Voice Agent',
-    tag: 'Python, Swift, on-device speech',
+    tag: 'Swift, Python, pipecat',
     stops: [
-      { label: 'WHAT', text: 'Voice-native Claude Code, living in the MacBook notch. Hold a key, talk through code out loud, and Claude Code does the actual work underneath.' },
-      { label: 'HOW', text: 'Hold right option, speak, let go. Speech runs on the machine both ways, with no API key. The same notch watches every other Claude Code session, so an agent stuck on a permission prompt shows up where you are.' },
-      { label: 'SEE', images: [img('voice-focus.jpg', 'The notch panel with a permission prompt and a spoken answer'), img('voice-agents.jpg', 'The notch panel listing every running session')] },
+      {
+        label: 'WHAT',
+        text: 'Push-to-talk voice layer for Claude Code, in the MacBook notch. Doubles as a control plane for every Claude Code session on the machine: roster, tokens and permission prompts in one place.',
+      },
+      {
+        label: 'ARCH',
+        text: 'Three processes on separate ports, so any one can die without taking the others down.',
+        specs: [
+          ['Shell', 'SwiftUI notch panel, hotkeys, push-to-talk'],
+          ['Voice', 'pipecat pipeline, ws :8765'],
+          ['Daemon', 'Roster, approval inbox, hosted ptys; ws :8767, tcp :8766, http :8768'],
+          ['Hook', 'notch_hook.py in each session, one question and one answer over tcp'],
+        ],
+      },
+      {
+        label: 'SPEECH',
+        text: 'Both directions run locally. Hold-to-talk marks the end of a turn, so the model only transcribes a bounded buffer on key-up. Measured on an M1 Max:',
+        specs: [
+          ['STT', 'parakeet-tdt-0.6b-v3 on MLX'],
+          ['Key-up to text', '57 ms for 0.7 s of audio, 86 ms for 3.4 s'],
+          ['TTS', 'Kokoro-82M via ONNX, about 4x realtime'],
+          ['First audio', '269 to 709 ms, by sentence length'],
+        ],
+      },
     ],
   },
   {
     title: 'Mic Iso',
-    tag: 'Python, real-time DSP',
+    tag: 'Python, NumPy, real-time DSP',
     stops: [
-      { label: 'WHAT', text: 'Real-time and offline voice isolation for close-talking microphones. It keeps the primary speaker and removes background voices, room noise and bleed.' },
-      { label: 'HOW', text: 'It exploits the proximity effect: a close cardioid mic picks up far more 80 to 300 Hz energy from the speaker than from distant voices. That band drives an adaptive gate on the highs, followed by a noise gate for cleanup.' },
-      { label: 'SEE', images: [img('mic-iso-spectrogram.jpg', 'Spectrogram of raw audio beside the gated output')] },
+      {
+        label: 'WHAT',
+        text: 'Voice isolation for close-talking mics, without ML. It uses the proximity effect: a cardioid mic held close captures a large 80 to 300 Hz boost that distant voices and room noise lack.',
+      },
+      {
+        label: 'CHAIN',
+        text: 'Detection and gating run on different bands. Below 500 Hz always passes, so a false trigger only bleeds highs.',
+        specs: [
+          ['Sidechain', 'Bandpass 80 to 300 Hz, drives the gate'],
+          ['Split', 'Crossover at 500 Hz'],
+          ['Gated', 'High band only, then recombined'],
+          ['Output', 'Fixed-threshold noise gate cleanup'],
+        ],
+      },
+      {
+        label: 'GATE',
+        text: 'The adaptive gate tracks a noise floor that only falls, and opens at a multiple of it. Defaults, tuned in a Flask and Socket.IO gate lab:',
+        specs: [
+          ['Threshold', 'Floor x 5.0, starting at -60 dBFS'],
+          ['Detector', '50 ms RMS window'],
+          ['Envelope', '5 ms attack, 180 ms hold, 110 ms release'],
+          ['Buffer', '512 samples at 44.1 kHz'],
+        ],
+      },
     ],
   },
   {
     title: 'Floor Piano',
     tag: 'Python, OpenCV, FastAPI',
     stops: [
-      { label: 'WHAT', text: 'A playable piano projected on the floor. A camera tracks where you step and plays the note in real time. Part of Emanate, with an official installation at the 2026 MMBC Conference.' },
-      { label: 'HOW', text: 'MOG2 background subtraction finds foot contacts. A homography maps the angled camera view to top-down space, so key detection does not depend on resolution. FastAPI streams video and key events to the browser.' },
-      { label: 'SEE', images: [img('emanate.jpg', 'The Emanate wordmark')] },
-      { label: 'LINKS', links: [
-        { label: 'Source code', url: 'https://github.com/bl0opy/floor-piano' },
-        { label: 'emanate.studio', url: 'https://www.emanate.studio/' },
-        { label: 'Emanate gesture synth demo', url: 'https://youtube.com/shorts/_eDrTClHqNM?feature=share' },
-      ] },
+      {
+        label: 'WHAT',
+        text: 'A playable projected piano, driven by a single webcam and classical computer vision. No ML dependencies. Installed at the 2026 MMBC Conference as part of Emanate.',
+      },
+      {
+        label: 'CV',
+        text: 'A background thread segments feet from the floor and resolves each contact to a key.',
+        specs: [
+          ['Segmentation', 'MOG2, history 300, no shadow detection'],
+          ['Noise rejection', 'Contours under 800 px are discarded'],
+          ['Calibration', 'Homography to top-down space, so key regions are resolution-independent'],
+        ],
+      },
+      {
+        label: 'STACK',
+        text: 'One FastAPI server handles the video, the events and the sound.',
+        specs: [
+          ['Video', 'MJPEG stream, displayed in a plain img tag'],
+          ['Events', 'WebSocket broadcast of key presses'],
+          ['Audio', 'pygame.mixer additive synthesis, with optional WAV samples'],
+          ['Input', 'USB webcam or RTSP/HTTP stream'],
+        ],
+      },
+      {
+        label: 'LINKS',
+        links: [
+          { label: 'Source code', url: 'https://github.com/bl0opy/floor-piano' },
+          { label: 'emanate.studio', url: 'https://www.emanate.studio/' },
+          { label: 'Emanate gesture synth demo', url: 'https://youtube.com/shorts/_eDrTClHqNM?feature=share' },
+        ],
+      },
     ],
   },
   {
     title: 'synqd',
-    tag: 'Swift, Supabase, Postgres',
+    tag: 'Swift, WidgetKit, Supabase',
     stops: [
-      { label: 'WHAT', text: 'An iOS app for long-distance couples. Home and lock screen widgets show your partner’s local time, status and location at a glance.' },
-      { label: 'HOW', text: 'A real-time sync backend built on Postgres, edge functions and APNs pushes partner location updates in under a second. It launched on TestFlight to 30 users in the first week.' },
-      { label: 'SEE', images: [img('synqd-app.jpg', 'The synqd app showing a partner card'), img('synqd-widget.jpg', 'The synqd home screen widget')] },
+      {
+        label: 'WHAT',
+        text: 'Paired iOS app and widgets that share a partner’s live time, status and location. Launched on TestFlight to 30 users in the first week, shipping their requests across 4+ builds.',
+      },
+      {
+        label: 'SYNC',
+        text: 'Postgres on Supabase is the source of truth. Location updates reach the partner in under a second.',
+        specs: [
+          ['Live', 'Realtime subscription on the partner’s profile row'],
+          ['Background', 'DB trigger, Edge Function, silent APNs push'],
+          ['Fallback', 'BGAppRefreshTask and scenePhase refresh'],
+          ['Auth', 'Sign in with Apple, 6-character invite pairing via RPC'],
+        ],
+      },
+      {
+        label: 'WIDGET',
+        text: 'The app and the WidgetKit extension are separate processes, so they share a model through an App Group.',
+        specs: [
+          ['Shared', 'JSON and UserDefaults in an App Group'],
+          ['Surfaces', 'Medium and Lock Screen widgets'],
+          ['Action', 'AppIntent sends a push from the widget'],
+          ['State', 'Five states from each partner’s own wake and sleep hours'],
+        ],
+      },
       { label: 'LINKS', links: [{ label: 'mysynqd.com', url: 'https://mysynqd.com/' }] },
     ],
   },
@@ -48,18 +132,50 @@ export const CONTENT = [
     title: 'Descant',
     tag: 'Electron, Monaco, Python',
     stops: [
-      { label: 'WHAT', text: 'A desktop code editor with Claude Code in the side panel. An editor first: the agent is there when you want it and out of the way when you don’t.' },
-      { label: 'HOW', text: 'Monaco handles editing in about 90 languages, with ripgrep search, a source-control panel and a terminal on the same folder. Electron starts the Python backend itself.' },
+      {
+        label: 'WHAT',
+        text: 'A desktop editor with Claude Code as a native side panel, not a terminal hosting the CLI. Monaco, ripgrep search, source control and a real shell, with a context inspector over session history.',
+      },
+      {
+        label: 'AGENT',
+        text: 'A chat is one long-lived headless process. It cannot ask for permission mid-stream, so approving restarts it on the same session with one more rule.',
+        specs: [
+          ['Process', 'claude -p with stream-json in and out'],
+          ['Approve', '--resume <session> --allowedTools <rule>'],
+          ['Scope', 'Bash(git status:*), not all of Bash'],
+          ['Persist', 'Always allow writes .claude/settings.local.json'],
+        ],
+      },
       { label: 'LINKS', links: [{ label: 'Source code', url: 'https://github.com/bl0opy/descant-ide' }] },
     ],
   },
   {
     title: 'Solo.ai',
-    tag: 'Swift, Python, on-device ML',
+    tag: 'Swift, LiteRT-LM, on-device ML',
     stops: [
-      { label: 'WHAT', text: 'A privacy-first iOS chat app that scrubs personal data on the device before any cloud LLM sees it.' },
-      { label: 'HOW', text: 'A local model detects personal information, reformulates sensitive prompts to the minimum necessary context, and escalates high-risk ones to you. A hybrid pipeline cut response start from about 20s to 2.7s, checked by an 89-test suite.' },
-      { label: 'SEE', images: [img('soloai.jpg', 'The Solo.ai app icon')] },
+      {
+        label: 'WHAT',
+        text: 'iOS chat that runs a language model on the phone and scrubs personal data before any cloud LLM sees it. The privacy system is validated by an 89-test automated suite.',
+      },
+      {
+        label: 'MODEL',
+        text: 'Two inference providers behind one chat surface. A hybrid pipeline cut response start from about 20 s to about 2.7 s.',
+        specs: [
+          ['Local', 'Gemma 4 E4B via a custom Swift package over LiteRT-LM'],
+          ['Streaming', 'Token by token through the Session API'],
+          ['Cloud', 'Claude or GPT-4o over SSE'],
+          ['Keys', 'Stored in the iOS Keychain'],
+        ],
+      },
+      {
+        label: 'TRUST',
+        text: 'Every prompt passes through the local model first, in three tiers:',
+        specs: [
+          ['Detect', 'Finds personally identifiable information on-device'],
+          ['Reformulate', 'Reduces sensitive prompts to the minimum necessary context'],
+          ['Escalate', 'Sends high-risk prompts to the user for review'],
+        ],
+      },
     ],
   },
 ];

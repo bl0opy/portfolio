@@ -2,11 +2,12 @@ import { CONTENT } from './projects.js';
 
 const root = document.querySelector('#panel');
 
+const escape = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 function body(stop) {
-  if (stop.text) return `<p class="copy">${stop.text}</p>`;
-  if (stop.images) {
-    const items = stop.images.map((i) => `<img src="${i.src}" alt="${i.alt}">`).join('');
-    return `<div class="gallery" data-count="${stop.images.length}">${items}</div>`;
+  if (stop.text) {
+    const specs = (stop.specs ?? []).map(([key, value]) => `<div><dt>${escape(key)}</dt><dd>${escape(value)}</dd></div>`).join('');
+    return `<p class="copy">${escape(stop.text)}</p>${specs && `<dl class="specs">${specs}</dl>`}`;
   }
   const items = stop.links.map((l) => `<li><a href="${l.url}" target="_blank" rel="noopener">${l.label}<span aria-hidden="true">↗</span></a></li>`).join('');
   return `<ul class="links">${items}</ul>`;
