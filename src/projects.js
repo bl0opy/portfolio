@@ -1,4 +1,4 @@
-// One entry per mixer channel. Each stop is a detent on that channel's fader, bottom to top.
+// One entry per mixer channel. Each stop is a detent on that channel's fader, top to bottom.
 export const CONTENT = [
   {
     title: 'Voice Agent',

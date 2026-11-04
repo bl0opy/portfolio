@@ -4,14 +4,12 @@ import {
   PROJECTS, satin, metal, mesh, at, slab, cable, plug, jack, softLights,
 } from './kit.js';
 import {
-  ORANGE, W, D, STRIP, LADDER, MASTER_X, MASTER_KNOB_Z, MASTER_KNOB_R, STEEL, stripX, level, panelTexture, grainTexture,
-  tapeStrip, knob, faderCap, drawDisplay,
+  ORANGE, W, D, STRIP, LADDER, MASTER_X, MASTER_KNOB_Z, MASTER_KNOB_R, FADER_TOP, FADER_TRAVEL, STEEL, stripX, level,
+  panelTexture, grainTexture, tapeStrip, knob, faderCap, drawDisplay,
 } from './mixer.js';
 import { CONTENT, MASTER } from './projects.js';
 import { showPanel, hidePanel } from './panel.js';
 
-const FADER_BOTTOM = 3.65;
-const FADER_TRAVEL = 3.3;
 const KNOB_SWEEP = Math.PI * 1.5;
 const STEP_COOLDOWN = 450;
 const HOME = -1;
@@ -105,13 +103,13 @@ export function createConsole() {
       unit.add(mesh(new RoundedBoxGeometry(0.56, 0.13, 0.32, 3, 0.04), button, x + dx, 0.07, -0.84));
     });
 
-    const well = mesh(new THREE.BoxGeometry(0.16, 0.012, 4.34), new THREE.MeshStandardMaterial({ color: 0x030303, roughness: 0.8 }), x + 0.3, 0.008, 2.0);
+    const well = mesh(new THREE.BoxGeometry(0.16, 0.012, 3.9), new THREE.MeshStandardMaterial({ color: 0x030303, roughness: 0.8 }), x + 0.3, 0.008, 2.135);
     well.castShadow = false;
     unit.add(well);
 
-    const cap = at(faderCap(), x + 0.3, 0.02, FADER_BOTTOM);
+    const cap = at(faderCap(), x + 0.3, 0.02, FADER_TOP);
     unit.add(cap);
-    const grip = proxy(new THREE.BoxGeometry(1.1, 0.9, 1.0), x + 0.3, 0.3, FADER_BOTTOM, { type: 'fader', entry: i });
+    const grip = proxy(new THREE.BoxGeometry(1.1, 0.9, 1.0), x + 0.3, 0.3, FADER_TOP, { type: 'fader', entry: i });
     unit.add(grip);
     hits.push(grip);
     controls[i] = {
@@ -119,7 +117,7 @@ export function createConsole() {
       value: 0,
       goal: 0,
       place(v) {
-        const z = FADER_BOTTOM - v * FADER_TRAVEL;
+        const z = FADER_TOP + v * FADER_TRAVEL;
         cap.position.z = z;
         grip.position.z = z;
       },
@@ -293,7 +291,7 @@ export function createConsole() {
     }
     raycaster.setFromCamera(ndc, camera);
     if (!raycaster.ray.intersectPlane(grabPlane, point)) return;
-    setValue(drag.entry, THREE.MathUtils.clamp((FADER_BOTTOM - point.z) / FADER_TRAVEL, 0, 1));
+    setValue(drag.entry, THREE.MathUtils.clamp((point.z - FADER_TOP) / FADER_TRAVEL, 0, 1));
   }
 
   function pick(ndc) {
@@ -349,8 +347,8 @@ export function createConsole() {
       if (key === 'ArrowRight') step(1);
       else if (key === 'ArrowLeft') step(-1);
       else if (key === 'Escape') select(HOME);
-      else if (entry !== HOME && key === 'ArrowUp') setStop(entry, Math.min(stops[entry] + 1, CONTENT[entry].stops.length - 1));
-      else if (entry !== HOME && key === 'ArrowDown') setStop(entry, Math.max(stops[entry] - 1, 0));
+      else if (entry !== HOME && key === 'ArrowDown') setStop(entry, Math.min(stops[entry] + 1, CONTENT[entry].stops.length - 1));
+      else if (entry !== HOME && key === 'ArrowUp') setStop(entry, Math.max(stops[entry] - 1, 0));
     },
     onPointer(type, e, ndc) {
       if (type === 'pointerdown') {
@@ -403,7 +401,7 @@ export function createConsole() {
         control.place(control.value);
       });
       meters.forEach((meter, i) => {
-        const drive = 0.45 + 0.55 * controls[i].value;
+        const drive = 1 - 0.55 * controls[i].value;
         let goal = meter.rest;
         if (i === entry) goal = stillMotion.matches ? meter.base * drive * 0.8 : meterSignal(t, i, meter.base, drive);
         const speed = goal > meter.level ? 14 : 5;

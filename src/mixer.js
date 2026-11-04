@@ -13,6 +13,8 @@ export const LADDER = 16;
 export const MASTER_X = -7.25;
 export const MASTER_KNOB_Z = 1.4;
 export const MASTER_KNOB_R = 0.6;
+export const FADER_TOP = 0.62;
+export const FADER_TRAVEL = 3.03;
 export const stripX = (i) => -5.5 + STRIP * (i + 0.5);
 export const level = (commits) => Math.log(commits) / Math.log(177);
 
@@ -76,7 +78,7 @@ export function panelTexture() {
       ctx.fillText('SOLO', X(x + 0.38), Z(-0.42));
       const { stops } = CONTENT[i];
       stops.forEach((stop, j) => {
-        const z = 3.65 - (j / (stops.length - 1)) * 3.3;
+        const z = FADER_TOP + (j / (stops.length - 1)) * FADER_TRAVEL;
         ctx.textAlign = 'right';
         ctx.fillText(stop.label, X(x - 0.17), Z(z));
         ctx.textAlign = 'center';

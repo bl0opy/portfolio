@@ -16,7 +16,7 @@ export function showPanel(entry, stopIndex, onStop) {
   const project = CONTENT[entry];
   const rail = project.stops.map((stop, j) => (
     `<button type="button" data-stop="${j}" aria-pressed="${j === stopIndex}">${stop.label}</button>`
-  )).reverse().join('');
+  )).join('');
   root.innerHTML = `
     <header><span>${project.code ?? `CH 0${entry + 1}`}</span><span>${escape(project.tag)}</span></header>
     <h2 class="${project.title.length > 12 ? 'long' : ''}">${escape(project.title)}</h2>
