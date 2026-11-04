@@ -199,29 +199,3 @@ export function faderCap() {
   return g;
 }
 
-function wrap(ctx, text, width) {
-  const lines = [''];
-  text.split(' ').forEach((word) => {
-    const next = `${lines[lines.length - 1]} ${word}`.trim();
-    if (ctx.measureText(next).width > width) lines.push(word);
-    else lines[lines.length - 1] = next;
-  });
-  return lines;
-}
-
-export function drawDisplay(ctx, channel, stopIndex) {
-  const { width: w, height: h } = ctx.canvas;
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#0a0702';
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#ffb000';
-  const entry = CONTENT[channel];
-  const title = entry ? (entry.short ?? entry.title).toUpperCase() : 'AYAN C.';
-  ctx.font = '500 84px "Geist Mono"';
-  wrap(ctx, title, w - 100).forEach((line, i) => ctx.fillText(line, 54, 130 + i * 92));
-  ctx.font = '500 44px "Geist Mono"';
-  const note = entry ? `STOP ${stopIndex + 1}/${entry.stops.length} ${entry.stops[stopIndex].label}` : 'Scroll to start.';
-  wrap(ctx, note, w - 100).forEach((line, i) => ctx.fillText(line, 54, 400 + i * 60));
-  ctx.font = '500 36px "Geist Mono"';
-  ctx.fillText(entry?.code ?? (entry ? `CH 0${channel + 1}` : 'SIX CHANNELS'), 54, 650);
-}

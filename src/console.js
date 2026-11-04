@@ -5,8 +5,9 @@ import {
 } from './kit.js';
 import {
   ORANGE, W, D, STRIP, LADDER, MASTER_X, MASTER_KNOB_Z, MASTER_KNOB_R, FADER_TOP, FADER_TRAVEL, STEEL, stripX, level,
-  panelTexture, grainTexture, tapeStrip, knob, faderCap, drawDisplay,
+  panelTexture, grainTexture, tapeStrip, knob, faderCap,
 } from './mixer.js';
+import { drawDisplay } from './led.js';
 import { CONTENT, MASTER } from './projects.js';
 import { showPanel, hidePanel } from './panel.js';
 import { plugIn, plugOut, knobClick, faderTick } from './sound.js';
@@ -175,6 +176,7 @@ export function createConsole() {
   const displayCtx = canvas.getContext('2d');
   const displayMap = new THREE.CanvasTexture(canvas);
   displayMap.colorSpace = THREE.SRGBColorSpace;
+  displayMap.anisotropy = 8;
   const screen = new THREE.Mesh(new THREE.PlaneGeometry(3.14, 2.26).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({
     color: 0x050505, roughness: 0.14, emissive: 0xffffff, emissiveMap: displayMap, emissiveIntensity: 1.25,
   }));

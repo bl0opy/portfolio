@@ -19,6 +19,7 @@ Then open http://localhost:5199.
 | `src/projects.js` | All site copy and links. This is the file to edit. |
 | `src/console.js` | The console scene, navigation, drag controls and meters. |
 | `src/mixer.js` | Finish values, panel print, knobs, faders, tape and display. |
+| `src/led.js` | LED screen: dot-matrix font and layouts. |
 | `src/kit.js` | Shared geometry helpers and commit counts behind the meters. |
 | `src/panel.js` | Side panel and the plain fallback page. |
 | `src/sound.js` | Synthesized plug and knob sounds, the beat and the sound toggle. |

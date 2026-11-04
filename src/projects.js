@@ -180,7 +180,6 @@ export const CONTENT = [
   },
   {
     title: 'Ayan Chandrasekaran',
-    short: 'AYAN C.',
     code: 'MASTER',
     tag: 'CS and Music, Michigan',
     stops: [
@@ -216,3 +215,6 @@ export const CONTENT = [
 ];
 
 export const MASTER = CONTENT.length - 1;
+
+// Lines under the name on the LED screen.
+export const IDENTITY = ["University of Michigan '28", 'Computer Science', 'Programmer + Musician'];
