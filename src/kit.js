@@ -119,9 +119,9 @@ export function softLights(scene, { key, keyPos, keyIntensity, range = 14 }) {
   const light = new THREE.DirectionalLight(key, keyIntensity);
   light.position.set(...keyPos);
   light.castShadow = true;
-  light.shadow.mapSize.set(4096, 4096);
+  light.shadow.mapSize.set(2048, 2048);
   light.shadow.radius = 14;
-  light.shadow.blurSamples = 25;
+  light.shadow.blurSamples = 12;
   light.shadow.bias = -0.0004;
   Object.assign(light.shadow.camera, { left: -range, right: range, top: range, bottom: -range, near: 1, far: 70 });
   scene.add(light);

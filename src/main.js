@@ -24,8 +24,11 @@ let current = null;
 let composer = null;
 let name = null;
 let bokeh = null;
+let quality = Math.min(devicePixelRatio, 1.5);
+let frames = 0;
+let sampleStart = 0;
 
-function fit(width = innerWidth, height = innerHeight, ratio = Math.min(devicePixelRatio, 2)) {
+function fit(width = innerWidth, height = innerHeight, ratio = quality) {
   renderer.setPixelRatio(ratio);
   renderer.setSize(width, height, width === innerWidth && height === innerHeight);
   if (!current) return;
@@ -42,6 +45,8 @@ function show(next) {
   current = SCENES[next]();
   current.scene.environment = environment;
   current.scene.environmentIntensity = current.environment;
+  renderer.shadowMap.autoUpdate = !current.staticShadows;
+  renderer.shadowMap.needsUpdate = true;
   const target = new THREE.WebGLRenderTarget(1, 1, { samples: 4, type: THREE.HalfFloatType });
   composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(current.scene, current.camera));
@@ -66,6 +71,10 @@ function frame(t) {
   current.camera.position.y += eased.y * current.parallax * 0.5;
   current.camera.lookAt(current.target);
   current.tick(t, eased);
+  if (current.shadowsDirty) {
+    renderer.shadowMap.needsUpdate = true;
+    current.shadowsDirty = false;
+  }
   if (bokeh && current.dof) {
     bokeh.uniforms.focus.value = current.dof.focus;
     bokeh.uniforms.maxblur.value = current.dof.maxblur;
@@ -81,11 +90,24 @@ window.capture = async (scene, { name: file = scene, channel = null, stop = 0, w
   eased.set(0, 0);
   if (channel !== null) current.goTo?.(channel, stop);
   current.snap?.();
+  renderer.shadowMap.needsUpdate = true;
   for (let i = 0; i < 40; i++) frame(i * 0.016);
   const blob = await new Promise((resolve) => renderer.domElement.toBlob(resolve, 'image/jpeg', 0.92));
   const response = await fetch(`/${file}.jpg`, { method: 'POST', body: blob });
   fit();
   return { file, bytes: blob.size, status: response.status };
+};
+
+// Average GPU-synced frame time in ms, independent of requestAnimationFrame throttling.
+window.bench = (count = 20) => {
+  const gl = renderer.getContext();
+  const pixel = new Uint8Array(4);
+  const start = performance.now();
+  for (let i = 0; i < count; i++) {
+    frame(clock.getElapsedTime());
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+  }
+  return { ms: +((performance.now() - start) / count).toFixed(1), ratio: renderer.getPixelRatio() };
 };
 
 const ndc = new THREE.Vector2();
@@ -123,6 +145,21 @@ Object.keys(SCENES).forEach((key) => {
 });
 
 const requested = new URLSearchParams(location.search).get('scene');
-show(requested in SCENES ? requested : 'silver');
-renderer.setAnimationLoop(() => frame(clock.getElapsedTime()));
+show(requested in SCENES ? requested : 'vintage');
+function adapt(now) {
+  frames += 1;
+  if (now - sampleStart < 2000) return;
+  const fps = (frames * 1000) / (now - sampleStart);
+  frames = 0;
+  sampleStart = now;
+  if (fps < 40 && quality > 1) {
+    quality = Math.max(1, quality - 0.25);
+    fit();
+  }
+}
+
+renderer.setAnimationLoop((now) => {
+  frame(clock.getElapsedTime());
+  adapt(now);
+});
 window.ready = true;
