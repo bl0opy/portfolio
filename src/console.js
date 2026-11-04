@@ -11,7 +11,14 @@ import { CONTENT, MASTER } from './projects.js';
 import { showPanel, hidePanel } from './panel.js';
 
 const KNOB_SWEEP = Math.PI * 1.5;
-const STEP_COOLDOWN = 450;
+const STEP_COOLDOWN = 600;
+const WHEEL_TRAVEL = 300;
+const WHEEL_QUIET = 140;
+const WHEEL_MAX_LOCK = 2600;
+const WHEEL_NEW_SWIPE = 30;
+const WHEEL_DECAY = 2.5;
+const SWIPE_TRAVEL = 120;
+const PEEK = 0.12;
 const HOME = -1;
 const INITIAL_PATCH = 2;
 const ROUTE = [HOME, MASTER, ...PROJECTS.map((_, i) => i)];
@@ -207,6 +214,8 @@ export function createConsole() {
   const target = new THREE.Vector3();
   const goalPos = new THREE.Vector3();
   const goalTarget = new THREE.Vector3();
+  const leanPos = new THREE.Vector3();
+  const leanTarget = new THREE.Vector3();
   const raycaster = new THREE.Raycaster();
   const grabPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2);
   const point = new THREE.Vector3();
@@ -218,6 +227,9 @@ export function createConsole() {
   let swipe = null;
   let lastStep = 0;
   let wheel = 0;
+  let lastWheel = 0;
+  let lastDelta = 0;
+  let settling = false;
   let last = 0;
 
   function aim() {
@@ -338,10 +350,23 @@ export function createConsole() {
       this.shadowsDirty = true;
     },
     onWheel(delta) {
+      const now = performance.now();
+      const gap = now - lastWheel;
+      lastWheel = now;
+      const size = Math.abs(delta);
+      const rising = size > WHEEL_NEW_SWIPE && size > lastDelta * 2;
+      lastDelta = size;
+      if (settling) {
+        const held = now - lastStep;
+        if (held < STEP_COOLDOWN || (gap < WHEEL_QUIET && !rising && held < WHEEL_MAX_LOCK)) return;
+        settling = false;
+      }
+      if (Math.sign(delta) !== Math.sign(wheel)) wheel = 0;
       wheel += delta;
-      if (Math.abs(wheel) < 40) return;
+      if (Math.abs(wheel) < WHEEL_TRAVEL) return;
       throttledStep(Math.sign(wheel));
       wheel = 0;
+      settling = true;
     },
     onKey(key) {
       if (key === 'ArrowRight') step(1);
@@ -372,7 +397,7 @@ export function createConsole() {
           return 'grabbing';
         }
         if (swipe !== null) {
-          if (Math.abs(e.clientY - swipe) > 60) {
+          if (Math.abs(e.clientY - swipe) > SWIPE_TRAVEL) {
             throttledStep(e.clientY < swipe ? 1 : -1);
             swipe = e.clientY;
           }
@@ -393,8 +418,18 @@ export function createConsole() {
       const dt = t > last ? Math.min(t - last, 0.1) : 0.016;
       last = t;
       const ease = 1 - Math.exp(-dt * 3.2);
-      base.lerp(goalPos, ease);
-      target.lerp(goalTarget, ease);
+      if (performance.now() - lastWheel > WHEEL_QUIET) wheel *= Math.exp(-dt * WHEEL_DECAY);
+      leanPos.copy(goalPos);
+      leanTarget.copy(goalTarget);
+      const neighbor = ROUTE[ROUTE.indexOf(entry) + Math.sign(wheel)];
+      if (neighbor !== undefined) {
+        const view = views(neighbor, portrait);
+        const amount = (Math.abs(wheel) / WHEEL_TRAVEL) * PEEK;
+        leanPos.lerp(point.set(...view.position), amount);
+        leanTarget.lerp(point.set(...view.target), amount);
+      }
+      base.lerp(leanPos, ease);
+      target.lerp(leanTarget, ease);
       controls.forEach((control) => {
         if (Math.abs(control.goal - control.value) > 0.001) this.shadowsDirty = true;
         control.value += (control.goal - control.value) * (1 - Math.exp(-dt * 16));

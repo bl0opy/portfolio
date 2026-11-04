@@ -98,7 +98,8 @@ function dispatch(type, e) {
 });
 renderer.domElement.addEventListener('wheel', (e) => {
   e.preventDefault();
-  mixer.onWheel(e.deltaY);
+  const unit = [1, 40, innerHeight][e.deltaMode];
+  mixer.onWheel(e.deltaY * unit);
 }, { passive: false });
 addEventListener('keydown', (e) => mixer.onKey(e.key));
 addEventListener('resize', () => fit());
