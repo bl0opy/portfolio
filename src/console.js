@@ -4,30 +4,34 @@ import {
   PROJECTS, satin, metal, mesh, at, slab, cable, plug, jack, softLights,
 } from './kit.js';
 import {
-  ORANGE, W, D, STRIP, ACTIVE, LADDER, stripX, level, FINISHES, panelTexture, grainTexture, woodTexture,
-  tapeStrip, knob, faderCap, meterColor, drawDisplay, vuFace,
+  ORANGE, W, D, STRIP, LADDER, MASTER_X, MASTER_KNOB_Z, MASTER_KNOB_R, STEEL, stripX, level, panelTexture, grainTexture,
+  tapeStrip, knob, faderCap, drawDisplay,
 } from './mixer.js';
-import { CONTENT } from './projects.js';
-import { showPanel, hidePanel, themePanel } from './panel.js';
+import { CONTENT, MASTER } from './projects.js';
+import { showPanel, hidePanel } from './panel.js';
 
 const FADER_BOTTOM = 3.65;
 const FADER_TRAVEL = 3.3;
+const KNOB_SWEEP = Math.PI * 1.5;
 const STEP_COOLDOWN = 450;
-const VU_SWING = Math.PI * 0.24;
+const HOME = -1;
+const INITIAL_PATCH = 2;
+const ROUTE = [HOME, MASTER, ...PROJECTS.map((_, i) => i)];
 const stillMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const hint = document.querySelector('#hint');
+
+const stopValue = (entry, stop) => stop / (CONTENT[entry].stops.length - 1);
+const nearestStop = (entry, value) => Math.round(value * (CONTENT[entry].stops.length - 1));
 
 function meterSignal(t, i, base, drive) {
   const beat = (t * 2.2 + i * 0.37) % 1;
   const wobble = 0.5 + 0.5 * Math.sin(t * 7.3 + i) * Math.sin(t * 3.1 + i * 2);
   return Math.min(1, (0.25 + 0.75 * base * drive) * (0.3 + 0.75 * Math.exp(-beat * 4) + 0.35 * wobble));
 }
-const hint = () => document.querySelector('#hint');
-const stopValue = (channel, stop) => stop / (CONTENT[channel].stops.length - 1);
-const nearestStop = (channel, value) => Math.round(value * (CONTENT[channel].stops.length - 1));
 
 function patchPoints(x, lift) {
   return [
-    [-7.25, 0.9, 3], [-7.1, 1.25, 3.2], [-5.7, 0.5, 3.5], [(x - 7.25) / 2 + 0.2, 0.75 + lift * 0.4, 0.9],
+    [MASTER_X, 0.9, 3], [MASTER_X + 0.15, 1.25, 3.2], [-5.7, 0.5, 3.5], [(x + MASTER_X) / 2 + 0.2, 0.75 + lift * 0.4, 0.9],
     [(x - 1.5) * 0.8, 1.45 + lift * 0.7, -3], [x - 0.05, 1.45 + lift, -4.8], [x, 0.9 + lift, -4.85],
   ];
 }
@@ -39,18 +43,27 @@ function proxy(geometry, x, y, z, data) {
   return m;
 }
 
-function console3d(f) {
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(f.background);
-  scene.fog = new THREE.Fog(f.background, 30, 75);
-  const camera = new THREE.PerspectiveCamera(f.camera[0], 1.6, 0.1, 200);
-  camera.position.set(...f.camera[1]);
-  camera.lookAt(...f.camera[2]);
+function views(entry, portrait) {
+  if (entry === HOME) {
+    return portrait
+      ? { position: [-4.3, 30, 22], target: [-4.3, 0, 2.5] }
+      : { position: [-1.5, 20, 18.5], target: [0.3, 0, 0.2] };
+  }
+  if (entry === MASTER && portrait) return { position: [-6.4, 27, 20], target: [-6.4, 0, 4.6] };
+  if (entry === MASTER) return { position: [MASTER_X + 1.4, 13.5, 10.5], target: [MASTER_X + 2.9, 0, -0.6] };
+  const x = entry === MASTER ? MASTER_X : stripX(entry);
+  return portrait
+    ? { position: [x + 0.25, 15, 9.8], target: [x + 0.25, 0, 4] }
+    : { position: [x + 1, 8, 12], target: [x + 2.4, 0, 0.8] };
+}
 
-  const tableMap = f.tablePlain ? null : woodTexture(f.table);
-  if (tableMap) tableMap.repeat.set(5, 5);
+export function createConsole() {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(STEEL.background);
+  const camera = new THREE.PerspectiveCamera(STEEL.fov, 1.6, 0.1, 200);
+
   const table = mesh(new THREE.PlaneGeometry(160, 160), new THREE.MeshStandardMaterial({
-    map: tableMap, color: f.tablePlain ? f.table : 0xffffff, roughness: 0.68,
+    color: STEEL.background, roughness: 0.68,
   }), 0, -0.92, 0);
   table.rotation.x = -Math.PI / 2;
   table.castShadow = false;
@@ -58,11 +71,10 @@ function console3d(f) {
 
   const unit = new THREE.Group();
   scene.add(unit);
-  const chassis = satin(f.chassis, 0.5, 0.15);
-  unit.add(mesh(slab(W + 0.5, 0.92, D + 0.5, 0.26, 0.09), chassis, 0, -0.46, 0));
+  unit.add(mesh(slab(W + 0.5, 0.92, D + 0.5, 0.26, 0.09), satin(STEEL.chassis, 0.5, 0.15), 0, -0.46, 0));
 
   const face = mesh(new THREE.PlaneGeometry(W, D).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({
-    map: panelTexture(f), roughness: f.panelRough, metalness: f.panelMetal, roughnessMap: grainTexture(f),
+    map: panelTexture(), roughness: 0.32, metalness: 1, roughnessMap: grainTexture(),
   }), 0, 0.002, 0);
   face.castShadow = false;
   unit.add(face);
@@ -74,23 +86,18 @@ function console3d(f) {
     unit.add(slot);
   });
 
-  if (f.cheeks) {
-    const walnut = woodTexture('#4a2a14');
-    walnut.repeat.set(0.3, 0.4);
-    const material = new THREE.MeshStandardMaterial({ map: walnut, roughness: 0.46 });
-    [-1, 1].forEach((side) => unit.add(mesh(slab(0.62, 1.9, D + 1.8, 0.14, 0.06), material, side * (W / 2 + 0.56), -0.12, -0.4)));
-  }
-
   const hits = [];
-  const faders = [];
+  const controls = [];
   const meters = [];
+  const off = new THREE.Color(0x070708);
+
   PROJECTS.forEach((project, i) => {
     const x = stripX(i);
     const value = level(project.commits);
 
     unit.add(at(jack(0.85), x, 0.002, -4.85));
     [[0.62, -3.65, 0], [0.46, -2.45, 1], [0.46, -1.5, 2]].forEach(([r, z, row]) => {
-      unit.add(at(knob(f, row, r * 0.68, 0.9 - value * 1.8 - row * 0.6 + i * 0.35, false), x, 0.002, z));
+      unit.add(at(knob(r * 0.68, 0.9 - value * 1.8 - row * 0.6 + i * 0.35), x, 0.002, z));
     });
 
     [-0.38, 0.38].forEach((dx) => {
@@ -102,172 +109,164 @@ function console3d(f) {
     well.castShadow = false;
     unit.add(well);
 
-    const cap = at(faderCap(f, false), x + 0.3, 0.02, FADER_BOTTOM);
+    const cap = at(faderCap(), x + 0.3, 0.02, FADER_BOTTOM);
     unit.add(cap);
-    const grip = proxy(new THREE.BoxGeometry(1.1, 0.9, 1.0), x + 0.3, 0.3, FADER_BOTTOM, { type: 'fader', channel: i });
+    const grip = proxy(new THREE.BoxGeometry(1.1, 0.9, 1.0), x + 0.3, 0.3, FADER_BOTTOM, { type: 'fader', entry: i });
     unit.add(grip);
     hits.push(grip);
-    faders.push({ cap, grip, value: 0, goal: 0 });
+    controls[i] = {
+      cap,
+      value: 0,
+      goal: 0,
+      place(v) {
+        const z = FADER_BOTTOM - v * FADER_TRAVEL;
+        cap.position.z = z;
+        grip.position.z = z;
+      },
+    };
 
-    const socket = proxy(new THREE.CylinderGeometry(0.5, 0.5, 1.6, 12), x, 0.8, -4.85, { type: 'pick', channel: i });
+    const socket = proxy(new THREE.CylinderGeometry(0.5, 0.5, 1.6, 12), x, 0.8, -4.85, { type: 'pick', entry: i });
     unit.add(socket);
     hits.push(socket);
-    const label = proxy(new THREE.BoxGeometry(STRIP, 0.3, 0.8), x, 0.1, 4.72, { type: 'pick', channel: i });
+    const label = proxy(new THREE.BoxGeometry(STRIP, 0.3, 0.8), x, 0.1, 4.72, { type: 'pick', entry: i });
     unit.add(label);
     hits.push(label);
 
-    if (f.meter !== 'vu') {
-      const off = new THREE.Color(0x070708);
-      const on = Array.from({ length: LADDER }, (_, s) => meterColor(f, s).multiplyScalar(f.meterGain));
-      const dots = new THREE.InstancedMesh(new THREE.BoxGeometry(0.17, 0.018, 0.17), new THREE.MeshBasicMaterial({ color: 0xffffff }), LADDER);
-      const dummy = new THREE.Object3D();
-      for (let s = 0; s < LADDER; s++) {
-        dummy.position.set(x - 0.82, 0.012, 3.82 - s * 0.255);
-        dummy.updateMatrix();
-        dots.setMatrixAt(s, dummy.matrix);
-        dots.setColorAt(s, off);
-      }
-      unit.add(dots);
-      let shown = -1;
-      meters.push({
-        base: value,
-        rest: value * 0.88,
-        level: value * 0.88,
-        apply(level) {
-          const lit = Math.round(level * (LADDER - 1));
-          if (lit === shown) return;
-          shown = lit;
-          for (let s = 0; s < LADDER; s++) dots.setColorAt(s, s < lit ? on[s] : off);
-          dots.instanceColor.needsUpdate = true;
-        },
-      });
+    const dots = new THREE.InstancedMesh(new THREE.BoxGeometry(0.17, 0.018, 0.17), new THREE.MeshBasicMaterial({ color: 0xffffff }), LADDER);
+    const dummy = new THREE.Object3D();
+    for (let s = 0; s < LADDER; s++) {
+      dummy.position.set(x - 0.82, 0.012, 3.82 - s * 0.255);
+      dummy.updateMatrix();
+      dots.setMatrixAt(s, dummy.matrix);
+      dots.setColorAt(s, off);
     }
+    unit.add(dots);
+    let shown = -1;
+    meters.push({
+      base: value,
+      rest: value * 0.88,
+      level: value * 0.88,
+      apply(v) {
+        const lit = Math.round(v * (LADDER - 1));
+        if (lit === shown) return;
+        shown = lit;
+        for (let s = 0; s < LADDER; s++) dots.setColorAt(s, s < lit ? STEEL.meter : off);
+        dots.instanceColor.needsUpdate = true;
+      },
+    });
   });
 
   unit.add(tapeStrip());
 
-  unit.add(mesh(slab(3.36, 0.06, 2.48, 0.06, 0.02), new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: 0.3 }), -7.25, 0.03, -1.72));
+  unit.add(mesh(slab(3.36, 0.06, 2.48, 0.06, 0.02), new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: 0.3 }), MASTER_X, 0.03, -1.72));
   const canvas = document.createElement('canvas');
   canvas.width = 1000;
   canvas.height = 710;
   const displayCtx = canvas.getContext('2d');
-  drawDisplay(displayCtx, -1, 0);
   const displayMap = new THREE.CanvasTexture(canvas);
   displayMap.colorSpace = THREE.SRGBColorSpace;
   const screen = new THREE.Mesh(new THREE.PlaneGeometry(3.14, 2.26).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({
     color: 0x050505, roughness: 0.14, emissive: 0xffffff, emissiveMap: displayMap, emissiveIntensity: 1.25,
   }));
-  screen.position.set(-7.25, 0.062, -1.72);
+  screen.position.set(MASTER_X, 0.062, -1.72);
   unit.add(screen);
 
-  unit.add(at(knob(f, 1, 0.72, -0.8, false), -7.25, 0.002, 1.05));
-  unit.add(at(jack(1), -7.25, 0.002, 3.0));
+  const masterKnob = at(knob(MASTER_KNOB_R, KNOB_SWEEP / 2), MASTER_X, 0.002, MASTER_KNOB_Z);
+  unit.add(masterKnob);
+  const masterGrip = proxy(new THREE.CylinderGeometry(0.85, 0.85, 1.1, 16), MASTER_X, 0.5, MASTER_KNOB_Z, { type: 'knob', entry: MASTER });
+  unit.add(masterGrip);
+  hits.push(masterGrip);
+  controls[MASTER] = {
+    value: 0,
+    goal: 0,
+    place(v) {
+      masterKnob.rotation.y = (0.5 - v) * KNOB_SWEEP;
+    },
+  };
+  const nameplate = proxy(new THREE.BoxGeometry(3.4, 0.3, 4.4), MASTER_X, 0.1, -3.05, { type: 'pick', entry: MASTER });
+  unit.add(nameplate);
+  hits.push(nameplate);
 
+  unit.add(at(jack(1), MASTER_X, 0.002, 3));
   const cord = satin(ORANGE, 0.44, 0.3);
-  unit.add(at(plug(cord, 0.85), -7.25, 0.05, 3.0));
-  const patchPlug = at(plug(cord, 0.85), stripX(ACTIVE), 0.05, -4.85);
+  unit.add(at(plug(cord, 0.85), MASTER_X, 0.05, 3));
+  const patchPlug = at(plug(cord, 0.85), stripX(INITIAL_PATCH), 0.05, -4.85);
   unit.add(patchPlug);
-  let patchCable = cable(patchPoints(stripX(ACTIVE), 0), 0.058, cord);
+  let patchCable = cable(patchPoints(stripX(INITIAL_PATCH), 0), 0.058, cord);
   unit.add(patchCable);
 
-  if (f.meter !== 'vu') {
-    const black = satin(0x101010, 0.55, 0.15);
-    [0, 4].forEach((i) => {
-      const x = stripX(i);
-      unit.add(cable([[x, -0.5, -5.7], [x + 0.2, -0.75, -7], [x + 0.7, -0.88, -11], [x + 1, -0.88, -30]], 0.05, black));
-    });
-  } else {
-    const bridge = new THREE.MeshStandardMaterial({
-      color: 0xc6c7c8, metalness: 0.55, roughness: 0.42, roughnessMap: grainTexture(f),
-    });
-    unit.add(mesh(new RoundedBoxGeometry(W + 0.5, 3.7, 1.1, 4, 0.08), bridge, 0, 1.4, -6.25));
-    PROJECTS.forEach((project, i) => {
-      const x = stripX(i);
-      const dial = new THREE.Mesh(new THREE.PlaneGeometry(2, 1.25), new THREE.MeshStandardMaterial({
-        roughness: 0.2, color: 0x000000, emissive: 0xffffff, emissiveMap: vuFace(project), emissiveIntensity: 1,
-      }));
-      dial.position.set(x, 2, -5.69);
-      unit.add(dial);
-      const needle = new THREE.Mesh(
-        new THREE.BoxGeometry(0.018, 0.98, 0.006).translate(0, 0.49, 0),
-        new THREE.MeshBasicMaterial({ color: 0x141008 }),
-      );
-      needle.position.set(x, 1.35, -5.67);
-      unit.add(needle);
-      unit.add(mesh(new THREE.BoxGeometry(0.24, 0.1, 0.04), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 }), x, 1.42, -5.66));
-      meters.push({
-        base: level(project.commits),
-        rest: 0,
-        level: 0,
-        apply(value) {
-          needle.rotation.z = VU_SWING - value * VU_SWING * 2;
-        },
-      });
-    });
-  }
+  const black = satin(0x101010, 0.55, 0.15);
+  [0, 4].forEach((i) => {
+    const x = stripX(i);
+    unit.add(cable([[x, -0.5, -5.7], [x + 0.2, -0.75, -7], [x + 0.7, -0.88, -11], [x + 1, -0.88, -30]], 0.05, black));
+  });
 
-  const key = softLights(scene, { key: f.key, keyPos: f.keyPos, keyIntensity: f.keyIntensity, range: 16 });
+  const key = softLights(scene, { key: STEEL.key.color, keyPos: STEEL.key.position, keyIntensity: STEEL.key.intensity, range: 16 });
   key.shadow.radius = 8;
   key.shadow.normalBias = 0.02;
 
-  const base = camera.position.clone();
-  const target = new THREE.Vector3(...f.camera[2]);
-  const goalPos = base.clone();
-  const goalTarget = target.clone();
-  const dof = { focus: base.distanceTo(target), maxblur: 0 };
+  const base = new THREE.Vector3();
+  const target = new THREE.Vector3();
+  const goalPos = new THREE.Vector3();
+  const goalTarget = new THREE.Vector3();
   const raycaster = new THREE.Raycaster();
   const grabPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2);
   const point = new THREE.Vector3();
   const stops = CONTENT.map(() => 0);
-  const patch = { from: stripX(ACTIVE), to: stripX(ACTIVE), t: 1 };
-  let channel = -1;
+  const patch = { from: stripX(INITIAL_PATCH), to: stripX(INITIAL_PATCH), t: 1 };
+  let entry = HOME;
+  let portrait = false;
   let drag = null;
   let swipe = null;
   let lastStep = 0;
   let wheel = 0;
   let last = 0;
-  themePanel(f.ui ?? {});
+
+  function aim() {
+    const view = views(entry, portrait);
+    goalPos.set(...view.position);
+    goalTarget.set(...view.target);
+  }
 
   function refresh() {
-    drawDisplay(displayCtx, channel, channel < 0 ? 0 : stops[channel]);
+    drawDisplay(displayCtx, entry, entry === HOME ? 0 : stops[entry]);
     displayMap.needsUpdate = true;
-    if (channel < 0) hidePanel();
-    else showPanel(channel, stops[channel], (stop) => setStop(channel, stop));
+    if (entry === HOME) hidePanel();
+    else showPanel(entry, stops[entry], (stop) => setStop(entry, stop));
   }
 
   function setStop(i, stop) {
-    if (stops[i] === stop && faders[i].goal === stopValue(i, stop)) return;
+    if (stops[i] === stop && controls[i].goal === stopValue(i, stop)) return;
     stops[i] = stop;
-    faders[i].goal = stopValue(i, stop);
+    controls[i].goal = stopValue(i, stop);
     refresh();
   }
 
   function select(next) {
-    if (next === channel) return;
-    if (channel >= 0) faders[channel].cap.userData.body.color.set(faders[channel].cap.userData.base);
-    channel = next;
-    if (channel < 0) {
-      goalPos.set(...f.camera[1]);
-      goalTarget.set(...f.camera[2]);
-    } else {
-      const x = stripX(channel);
-      const view = f.focusView;
-      goalPos.set(x + view.pos[0], view.pos[1], view.pos[2]);
-      goalTarget.set(x + view.target[0], view.target[1], view.target[2]);
-      faders[channel].cap.userData.body.color.set(ORANGE);
+    if (next === entry) return;
+    controls[entry]?.cap?.userData.body.color.set(STEEL.fader);
+    entry = next;
+    aim();
+    controls[entry]?.cap?.userData.body.color.set(ORANGE);
+    if (entry >= 0 && entry < MASTER) {
       patch.from = patchPlug.position.x;
-      patch.to = x;
+      patch.to = stripX(entry);
       patch.t = 0;
-      hint().hidden = true;
     }
+    hint.hidden = entry !== HOME;
     refresh();
   }
 
   function step(direction) {
+    const index = ROUTE.indexOf(entry) + direction;
+    if (index >= 0 && index < ROUTE.length) select(ROUTE[index]);
+  }
+
+  function throttledStep(direction) {
     const now = performance.now();
     if (now - lastStep < STEP_COOLDOWN) return;
     lastStep = now;
-    select(THREE.MathUtils.clamp(channel + direction, -1, CONTENT.length - 1));
+    step(direction);
   }
 
   function updateCable(x, lift) {
@@ -278,11 +277,8 @@ function console3d(f) {
     patchPlug.position.set(x, 0.05 + lift, -4.85);
   }
 
-  function dragFader(i, ndc) {
-    raycaster.setFromCamera(ndc, camera);
-    if (!raycaster.ray.intersectPlane(grabPlane, point)) return;
-    const value = THREE.MathUtils.clamp((FADER_BOTTOM - point.z) / FADER_TRAVEL, 0, 1);
-    faders[i].goal = value;
+  function setValue(i, value) {
+    controls[i].goal = value;
     const stop = nearestStop(i, value);
     if (stop !== stops[i]) {
       stops[i] = stop;
@@ -290,89 +286,106 @@ function console3d(f) {
     }
   }
 
+  function dragControl(ndc, e) {
+    if (drag.type === 'knob') {
+      setValue(drag.entry, THREE.MathUtils.clamp(drag.start + (drag.y - e.clientY) * 0.006, 0, 1));
+      return;
+    }
+    raycaster.setFromCamera(ndc, camera);
+    if (!raycaster.ray.intersectPlane(grabPlane, point)) return;
+    setValue(drag.entry, THREE.MathUtils.clamp((FADER_BOTTOM - point.z) / FADER_TRAVEL, 0, 1));
+  }
+
   function pick(ndc) {
     raycaster.setFromCamera(ndc, camera);
     return raycaster.intersectObjects(hits, false)[0]?.object.userData ?? null;
   }
 
-  hint().hidden = false;
-  drawDisplay(displayCtx, -1, 0);
+  aim();
+  base.copy(goalPos);
+  target.copy(goalTarget);
+  camera.position.copy(base);
+  camera.lookAt(target);
+  hint.textContent = matchMedia('(pointer: coarse)').matches ? 'Swipe to start. Slide a fader to read.' : 'Scroll to start. Slide a fader to read.';
+  hint.hidden = false;
+  refresh();
 
   return {
     scene,
     camera,
     base,
     target,
-    dof,
-    environment: f.environment,
-    bloom: f.bloom,
+    environment: STEEL.environment,
+    bloom: STEEL.bloom,
     parallax: 0.3,
-    focus: f.focus,
-    staticShadows: true,
     shadowsDirty: true,
+    layout(aspect) {
+      const next = aspect < 0.9;
+      if (next === portrait) return;
+      portrait = next;
+      aim();
+      base.copy(goalPos);
+      target.copy(goalTarget);
+    },
     goTo(next, stop = 0) {
       select(next);
-      setStop(next, stop);
+      if (next !== HOME) setStop(next, stop);
     },
     snap() {
       base.copy(goalPos);
       target.copy(goalTarget);
-      faders.forEach((fader) => { fader.value = fader.goal; });
+      controls.forEach((control) => { control.value = control.goal; });
       patch.t = 1;
       updateCable(patch.to, 0);
-    },
-    leave() {
-      hidePanel();
-      hint().hidden = true;
+      this.shadowsDirty = true;
     },
     onWheel(delta) {
       wheel += delta;
       if (Math.abs(wheel) < 40) return;
-      step(Math.sign(wheel));
+      throttledStep(Math.sign(wheel));
       wheel = 0;
     },
     onKey(key) {
-      if (key === 'ArrowRight') select(Math.min(channel + 1, CONTENT.length - 1));
-      else if (key === 'ArrowLeft') select(Math.max(channel - 1, -1));
-      else if (key === 'Escape') select(-1);
-      else if (channel >= 0 && key === 'ArrowUp') setStop(channel, Math.min(stops[channel] + 1, CONTENT[channel].stops.length - 1));
-      else if (channel >= 0 && key === 'ArrowDown') setStop(channel, Math.max(stops[channel] - 1, 0));
+      if (key === 'ArrowRight') step(1);
+      else if (key === 'ArrowLeft') step(-1);
+      else if (key === 'Escape') select(HOME);
+      else if (entry !== HOME && key === 'ArrowUp') setStop(entry, Math.min(stops[entry] + 1, CONTENT[entry].stops.length - 1));
+      else if (entry !== HOME && key === 'ArrowDown') setStop(entry, Math.max(stops[entry] - 1, 0));
     },
     onPointer(type, e, ndc) {
       if (type === 'pointerdown') {
         const hit = pick(ndc);
-        if (hit?.type === 'fader') {
-          select(hit.channel);
-          drag = hit.channel;
-          dragFader(drag, ndc);
+        if (hit?.type === 'fader' || hit?.type === 'knob') {
+          select(hit.entry);
+          drag = { ...hit, y: e.clientY, start: controls[hit.entry].goal };
+          if (hit.type === 'fader') dragControl(ndc, e);
           return 'grabbing';
         }
         if (hit?.type === 'pick') {
-          select(hit.channel);
+          select(hit.entry);
           return 'pointer';
         }
         swipe = e.clientY;
         return undefined;
       }
       if (type === 'pointermove') {
-        if (drag !== null) {
-          dragFader(drag, ndc);
+        if (drag) {
+          dragControl(ndc, e);
           return 'grabbing';
         }
         if (swipe !== null) {
           if (Math.abs(e.clientY - swipe) > 60) {
-            step(e.clientY < swipe ? 1 : -1);
+            throttledStep(e.clientY < swipe ? 1 : -1);
             swipe = e.clientY;
           }
           return undefined;
         }
         const hit = pick(ndc);
-        if (hit?.type === 'fader') return 'grab';
+        if (hit?.type === 'fader' || hit?.type === 'knob') return 'grab';
         return hit?.type === 'pick' ? 'pointer' : 'default';
       }
-      if (drag !== null) {
-        const stop = nearestStop(drag, faders[drag].goal);
-        faders[drag].goal = stopValue(drag, stop);
+      if (drag) {
+        controls[drag.entry].goal = stopValue(drag.entry, nearestStop(drag.entry, controls[drag.entry].goal));
         drag = null;
       }
       swipe = null;
@@ -384,17 +397,15 @@ function console3d(f) {
       const ease = 1 - Math.exp(-dt * 3.2);
       base.lerp(goalPos, ease);
       target.lerp(goalTarget, ease);
-      faders.forEach((fader) => {
-        if (Math.abs(fader.goal - fader.value) > 0.001) this.shadowsDirty = true;
-        fader.value += (fader.goal - fader.value) * (1 - Math.exp(-dt * 16));
-        const z = FADER_BOTTOM - fader.value * FADER_TRAVEL;
-        fader.cap.position.z = z;
-        fader.grip.position.z = z;
+      controls.forEach((control) => {
+        if (Math.abs(control.goal - control.value) > 0.001) this.shadowsDirty = true;
+        control.value += (control.goal - control.value) * (1 - Math.exp(-dt * 16));
+        control.place(control.value);
       });
       meters.forEach((meter, i) => {
-        const drive = 0.45 + 0.55 * faders[i].value;
+        const drive = 0.45 + 0.55 * controls[i].value;
         let goal = meter.rest;
-        if (i === channel) goal = stillMotion.matches ? meter.base * drive * 0.8 : meterSignal(t, i, meter.base, drive);
+        if (i === entry) goal = stillMotion.matches ? meter.base * drive * 0.8 : meterSignal(t, i, meter.base, drive);
         const speed = goal > meter.level ? 14 : 5;
         meter.level += (goal - meter.level) * (1 - Math.exp(-dt * speed));
         meter.apply(meter.level);
@@ -405,11 +416,6 @@ function console3d(f) {
         const smooth = patch.t * patch.t * (3 - 2 * patch.t);
         updateCable(THREE.MathUtils.lerp(patch.from, patch.to, smooth), Math.sin(patch.t * Math.PI) * 1.5);
       }
-      dof.focus = camera.position.distanceTo(target);
-      const blur = channel < 0 || !f.focus ? 0 : f.focus[1];
-      dof.maxblur += (blur - dof.maxblur) * ease;
     },
   };
 }
-
-export const MIXERS = Object.fromEntries(Object.entries(FINISHES).map(([name, f]) => [name, () => console3d(f)]));

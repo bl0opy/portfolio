@@ -15,9 +15,6 @@ export const satin = (color, roughness = 0.5, clearcoat = 0.2) =>
 export const metal = (color, roughness = 0.3) =>
   new THREE.MeshStandardMaterial({ color, roughness, metalness: 1 });
 
-export const glow = (color, intensity = 3) =>
-  new THREE.MeshStandardMaterial({ color: 0x000000, emissive: color, emissiveIntensity: intensity });
-
 export function mesh(geometry, material, x = 0, y = 0, z = 0) {
   const m = new THREE.Mesh(geometry, material);
   m.position.set(x, y, z);
