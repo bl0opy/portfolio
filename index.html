@@ -12,12 +12,43 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0b0b; }
   canvas { display: block; touch-action: none; }
   #bar {
-    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    position: fixed; left: 24px; top: 24px;
     display: flex; gap: 4px; padding: 4px; background: var(--bar); backdrop-filter: blur(12px);
     font: 13px "Geist Mono", monospace;
   }
   #bar button { all: unset; cursor: pointer; padding: 6px 12px; color: var(--ink); }
   #bar button[aria-pressed="true"] { background: var(--ink); color: #0b0b0b; }
+  #hint {
+    position: fixed; left: 24px; bottom: 22px; margin: 0; padding: 6px 10px; color: var(--ink);
+    background: var(--bar); font: 13px "Geist Mono", monospace; pointer-events: none;
+  }
+  #panel {
+    --paper: rgba(240, 240, 238, 0.94); --ink: #111; --muted: #555; --accent: #e8480a;
+    position: fixed; top: 24px; right: 24px; bottom: 24px; width: min(440px, 36vw);
+    display: flex; flex-direction: column; gap: 16px; padding: 24px 24px 24px;
+    background: var(--paper); color: var(--ink); font-family: Archivo, sans-serif; overflow: hidden;
+  }
+  #panel[hidden] { display: none; }
+  #panel header { display: flex; justify-content: space-between; gap: 16px; font: 13px "Geist Mono", monospace; color: var(--muted); }
+  #panel h2 { margin: 0; font-stretch: 125%; font-weight: 800; font-size: clamp(30px, 3.2vw, 46px); line-height: 1.05; letter-spacing: -0.02em; }
+  #panel .stop { flex: 1; min-height: 0; overflow-y: auto; padding-right: 64px; animation: rise 260ms ease-out; }
+  #panel .copy { margin: 0; font-size: 22px; line-height: 1.4; }
+  #panel .gallery { display: flex; gap: 8px; height: 100%; align-items: flex-start; }
+  #panel .gallery img { display: block; flex: 1; min-width: 0; max-height: 100%; object-fit: contain; object-position: top; }
+  #panel .links { list-style: none; margin: 0; padding: 0; font-size: 19px; }
+  #panel .links a { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; color: inherit; text-decoration: none; border-bottom: 1px solid var(--muted); }
+  #panel .links a:hover { color: var(--accent); }
+  #panel .rail { position: absolute; right: 24px; top: 150px; bottom: 24px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; }
+  #panel .rail button { all: unset; cursor: pointer; font: 12px "Geist Mono", monospace; color: var(--muted); padding: 4px 0; }
+  #panel .rail button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #panel .rail button[aria-pressed="true"] { color: var(--accent); font-weight: 500; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+  @media (prefers-reduced-motion: reduce) { #panel .stop { animation: none; } }
+  @media (max-width: 760px) {
+    #panel { top: auto; left: 16px; right: 16px; bottom: 64px; width: auto; height: 46vh; padding: 16px; }
+    #panel .rail { right: 16px; top: 110px; bottom: 16px; }
+    #hint { display: none; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -28,6 +59,8 @@
 </head>
 <body>
 <nav id="bar" aria-label="Direction"></nav>
+<aside id="panel" hidden aria-live="polite"></aside>
+<p id="hint" hidden>Scroll to change channel. Slide a fader to read it.</p>
 <script type="module" src="src/main.js"></script>
 </body>
 </html>
