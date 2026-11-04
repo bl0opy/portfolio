@@ -13,6 +13,14 @@ import { showPanel, hidePanel, themePanel } from './panel.js';
 const FADER_BOTTOM = 3.65;
 const FADER_TRAVEL = 3.3;
 const STEP_COOLDOWN = 450;
+const VU_SWING = Math.PI * 0.24;
+const stillMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+function meterSignal(t, i, base, drive) {
+  const beat = (t * 2.2 + i * 0.37) % 1;
+  const wobble = 0.5 + 0.5 * Math.sin(t * 7.3 + i) * Math.sin(t * 3.1 + i * 2);
+  return Math.min(1, (0.25 + 0.75 * base * drive) * (0.3 + 0.75 * Math.exp(-beat * 4) + 0.35 * wobble));
+}
 const hint = () => document.querySelector('#hint');
 const stopValue = (channel, stop) => stop / (CONTENT[channel].stops.length - 1);
 const nearestStop = (channel, value) => Math.round(value * (CONTENT[channel].stops.length - 1));
@@ -75,6 +83,7 @@ function console3d(f) {
 
   const hits = [];
   const faders = [];
+  const meters = [];
   PROJECTS.forEach((project, i) => {
     const x = stripX(i);
     const value = level(project.commits);
@@ -109,15 +118,29 @@ function console3d(f) {
 
     if (f.meter !== 'vu') {
       const off = new THREE.Color(0x070708);
+      const on = Array.from({ length: LADDER }, (_, s) => meterColor(f, s).multiplyScalar(f.meterGain));
       const dots = new THREE.InstancedMesh(new THREE.BoxGeometry(0.17, 0.018, 0.17), new THREE.MeshBasicMaterial({ color: 0xffffff }), LADDER);
       const dummy = new THREE.Object3D();
       for (let s = 0; s < LADDER; s++) {
         dummy.position.set(x - 0.82, 0.012, 3.82 - s * 0.255);
         dummy.updateMatrix();
         dots.setMatrixAt(s, dummy.matrix);
-        dots.setColorAt(s, s / (LADDER - 1) < value * 0.88 ? meterColor(f, s).multiplyScalar(f.meterGain) : off);
+        dots.setColorAt(s, off);
       }
       unit.add(dots);
+      let shown = -1;
+      meters.push({
+        base: value,
+        rest: value * 0.88,
+        level: value * 0.88,
+        apply(level) {
+          const lit = Math.round(level * (LADDER - 1));
+          if (lit === shown) return;
+          shown = lit;
+          for (let s = 0; s < LADDER; s++) dots.setColorAt(s, s < lit ? on[s] : off);
+          dots.instanceColor.needsUpdate = true;
+        },
+      });
     }
   });
 
@@ -154,13 +177,32 @@ function console3d(f) {
       unit.add(cable([[x, -0.5, -5.7], [x + 0.2, -0.75, -7], [x + 0.7, -0.88, -11], [x + 1, -0.88, -30]], 0.05, black));
     });
   } else {
-    unit.add(mesh(new RoundedBoxGeometry(W + 0.5, 2.1, 1.1, 4, 0.08), chassis, 0, 0.5, -6.25));
+    const bridge = new THREE.MeshStandardMaterial({
+      color: 0xc6c7c8, metalness: 0.55, roughness: 0.42, roughnessMap: grainTexture(f),
+    });
+    unit.add(mesh(new RoundedBoxGeometry(W + 0.5, 3.7, 1.1, 4, 0.08), bridge, 0, 1.4, -6.25));
     PROJECTS.forEach((project, i) => {
+      const x = stripX(i);
       const dial = new THREE.Mesh(new THREE.PlaneGeometry(2, 1.25), new THREE.MeshStandardMaterial({
-        roughness: 0.2, color: 0x000000, emissive: 0xffffff, emissiveMap: vuFace(project, level(project.commits) * 0.9), emissiveIntensity: 1,
+        roughness: 0.2, color: 0x000000, emissive: 0xffffff, emissiveMap: vuFace(project), emissiveIntensity: 1,
       }));
-      dial.position.set(stripX(i), 0.62, -5.69);
+      dial.position.set(x, 2, -5.69);
       unit.add(dial);
+      const needle = new THREE.Mesh(
+        new THREE.BoxGeometry(0.018, 0.98, 0.006).translate(0, 0.49, 0),
+        new THREE.MeshBasicMaterial({ color: 0x141008 }),
+      );
+      needle.position.set(x, 1.35, -5.67);
+      unit.add(needle);
+      unit.add(mesh(new THREE.BoxGeometry(0.24, 0.1, 0.04), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 }), x, 1.42, -5.66));
+      meters.push({
+        base: level(project.commits),
+        rest: 0,
+        level: 0,
+        apply(value) {
+          needle.rotation.z = VU_SWING - value * VU_SWING * 2;
+        },
+      });
     });
   }
 
@@ -266,6 +308,8 @@ function console3d(f) {
     bloom: f.bloom,
     parallax: 0.3,
     focus: f.focus,
+    staticShadows: true,
+    shadowsDirty: true,
     goTo(next, stop = 0) {
       select(next);
       setStop(next, stop);
@@ -335,18 +379,28 @@ function console3d(f) {
       return 'default';
     },
     tick(t) {
-      const dt = t > last ? Math.min(t - last, 0.05) : 0.016;
+      const dt = t > last ? Math.min(t - last, 0.1) : 0.016;
       last = t;
       const ease = 1 - Math.exp(-dt * 3.2);
       base.lerp(goalPos, ease);
       target.lerp(goalTarget, ease);
       faders.forEach((fader) => {
+        if (Math.abs(fader.goal - fader.value) > 0.001) this.shadowsDirty = true;
         fader.value += (fader.goal - fader.value) * (1 - Math.exp(-dt * 16));
         const z = FADER_BOTTOM - fader.value * FADER_TRAVEL;
         fader.cap.position.z = z;
         fader.grip.position.z = z;
       });
+      meters.forEach((meter, i) => {
+        const drive = 0.45 + 0.55 * faders[i].value;
+        let goal = meter.rest;
+        if (i === channel) goal = stillMotion.matches ? meter.base * drive * 0.8 : meterSignal(t, i, meter.base, drive);
+        const speed = goal > meter.level ? 14 : 5;
+        meter.level += (goal - meter.level) * (1 - Math.exp(-dt * speed));
+        meter.apply(meter.level);
+      });
       if (patch.t < 1) {
+        this.shadowsDirty = true;
         patch.t = Math.min(patch.t + dt * 1.7, 1);
         const smooth = patch.t * patch.t * (3 - 2 * patch.t);
         updateCable(THREE.MathUtils.lerp(patch.from, patch.to, smooth), Math.sin(patch.t * Math.PI) * 1.5);

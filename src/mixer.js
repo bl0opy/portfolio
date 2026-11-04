@@ -30,10 +30,10 @@ export const FINISHES = {
     ui: { paper: '#121214', ink: '#ece9e0', muted: '#9a9a96', accent: '#ff5a10' },
   },
   vintage: {
-    panel: '#6d8598', panelMetal: 0.12, panelRough: 0.42, ink: '#0f1418', chassis: 0x20262b, grain: 'speckle',
-    knob: 'marconi', capColors: [0xa8281c, 0x8b8f92, 0x8b8f92], fader: 0x141414, background: 0x1a120c, table: '#2b1b10',
-    meter: 'vu', cheeks: true, key: 0xffdcb0, keyPos: [-6, 16, 10], keyIntensity: 2.2, environment: 0.4, bloom: [0.25, 0.5, 1],
-    camera: [28, [2.5, 13, 20.5], [0, 0.2, -0.8]], focusView: { pos: [1.5, 6.6, 11.6], target: [1.55, 0.1, 1.2] }, focus: [0.0009, 0.006],
+    panel: '#c2c3c4', panelMetal: 1, panelRough: 0.36, ink: '#111111', chassis: 0x8a8b8c, grain: 'brushed',
+    knob: 'marconi', capColors: [0xa8281c, 0x26282b, 0x26282b], fader: 0x141414, background: 0x1a120c, table: '#2b1b10',
+    meter: 'vu', cheeks: true, key: 0xffdcb0, keyPos: [-6, 16, 10], keyIntensity: 1.25, environment: 0.72, bloom: [0.14, 0.5, 1],
+    camera: [28, [2.5, 14.5, 22], [0, 0.4, -1]], focusView: { pos: [1.5, 9.8, 14.6], target: [1.75, 0.5, -0.5] }, focus: [0.0004, 0.004],
     ui: { paper: '#f0e1bc', ink: '#1c150c', muted: '#5f5238', accent: '#a8281c' },
   },
   silver: {
@@ -286,7 +286,7 @@ export function drawDisplay(ctx, channel, stopIndex) {
   ctx.fillText(project ? `CH 0${channel + 1}` : 'SIX CHANNELS', 54, 650);
 }
 
-export function vuFace(project, value) {
+export function vuFace(project) {
   return canvasTexture(640, 400, (ctx, w, h) => {
     const g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, '#f5e3b4');
@@ -311,13 +311,6 @@ export function vuFace(project, value) {
     ctx.fillText('VU', cx, h * 0.72);
     ctx.font = '500 26px "Geist Mono"';
     ctx.fillText(project.name.toUpperCase(), cx, h * 0.88);
-    const a = -Math.PI * 0.74 + value * Math.PI * 0.48;
-    ctx.strokeStyle = '#141008';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + Math.cos(a) * (r + 44), cy + Math.sin(a) * (r + 44));
-    ctx.stroke();
   });
 }
 
