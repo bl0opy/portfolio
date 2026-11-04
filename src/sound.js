@@ -1,4 +1,5 @@
-const BEAT_URL = 'assets/audio/beat.mp3';
+const BEAT_URL = 'assets/audio/track.dat';
+const BEAT_KEY = 'q7Vd2xKpR9mZt4LcWb8YhN3sFe6JuGa1';
 const BEAT_LENGTH = 108;
 const BEAT_LEVEL = 0.18;
 const BEAT_FADE = 1.2;
@@ -83,8 +84,10 @@ function fadeBeat() {
 async function loadBeat() {
   const response = await fetch(BEAT_URL);
   if (!response.ok) return;
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  for (let i = 0; i < bytes.length; i++) bytes[i] ^= BEAT_KEY.charCodeAt(i % BEAT_KEY.length);
   const source = context.createBufferSource();
-  source.buffer = await context.decodeAudioData(await response.arrayBuffer());
+  source.buffer = await context.decodeAudioData(bytes.buffer);
   source.loop = true;
   source.loopEnd = Math.min(BEAT_LENGTH, source.buffer.duration);
   source.connect(beatGain);

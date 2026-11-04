@@ -29,7 +29,11 @@ Then open http://localhost:5199.
 
 ## Beat
 
-`assets/audio/beat.mp3` loops quietly after the visitor's first click or key press, since browsers block audio before that. To swap the track, replace the file and set `BEAT_LENGTH` in `src/sound.js` to its length in seconds. The site runs without it.
+`assets/audio/track.dat` loops quietly after the visitor's first click or key press, since browsers block audio before that. The site runs without it.
+
+The file is a 128 kbps MP3 with its bytes scrambled, so there is no plain audio file to save from the site. This stops casual downloads only: the key ships in `src/sound.js`, and anything a browser plays can be recorded.
+
+To swap the track, encode it as an MP3, run `python tools/pack_beat.py <file.mp3>`, and set `BEAT_LENGTH` in `src/sound.js` to its length in seconds.
 
 ## Other finishes
 
