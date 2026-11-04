@@ -22,6 +22,7 @@ const WHEEL_NEW_SWIPE = 30;
 const WHEEL_DECAY = 2.5;
 const SWIPE_TRAVEL = 120;
 const PEEK = 0.12;
+const TOP_DOWN_ENVIRONMENT = 0.34;
 const HOME = -1;
 const INITIAL_PATCH = 2;
 const ROUTE = [HOME, MASTER, ...PROJECTS.map((_, i) => i)];
@@ -51,11 +52,15 @@ function proxy(geometry, x, y, z, data) {
   return m;
 }
 
-function views(entry, portrait) {
+function topDownHeight(aspect) {
+  return Math.max(27.5, (W / 2 + 0.7) / (Math.tan(THREE.MathUtils.degToRad(STEEL.fov / 2)) * aspect));
+}
+
+function views(entry, portrait, aspect) {
   if (entry === HOME) {
     return portrait
-      ? { position: [-4.3, 30, 22], target: [-4.3, 0, 2.5] }
-      : { position: [-1.5, 20, 18.5], target: [0.3, 0, 0.2] };
+      ? { position: [-5, 36, 0], target: [-5, 0, 0], up: [0, 0, -1], environment: TOP_DOWN_ENVIRONMENT }
+      : { position: [0, topDownHeight(aspect), 0], target: [0, 0, 0], up: [0, 0, -1], environment: TOP_DOWN_ENVIRONMENT };
   }
   if (entry === MASTER && portrait) return { position: [-6.4, 27, 20], target: [-6.4, 0, 4.6] };
   if (entry === MASTER) return { position: [MASTER_X + 1.4, 13.5, 10.5], target: [MASTER_X + 2.9, 0, -0.6] };
@@ -177,8 +182,8 @@ export function createConsole() {
   const displayMap = new THREE.CanvasTexture(canvas);
   displayMap.colorSpace = THREE.SRGBColorSpace;
   displayMap.anisotropy = 8;
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(3.14, 2.26).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({
-    color: 0x050505, roughness: 0.14, emissive: 0xffffff, emissiveMap: displayMap, emissiveIntensity: 1.25,
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(3.14, 2.26).rotateX(-Math.PI / 2), new THREE.MeshPhysicalMaterial({
+    color: 0x050505, roughness: 0.14, specularIntensity: 0.2, emissive: 0xffffff, emissiveMap: displayMap, emissiveIntensity: 1.25,
   }));
   screen.position.set(MASTER_X, 0.062, -1.72);
   unit.add(screen);
@@ -224,6 +229,7 @@ export function createConsole() {
   const target = new THREE.Vector3();
   const goalPos = new THREE.Vector3();
   const goalTarget = new THREE.Vector3();
+  const goalUp = new THREE.Vector3();
   const leanPos = new THREE.Vector3();
   const leanTarget = new THREE.Vector3();
   const raycaster = new THREE.Raycaster();
@@ -233,6 +239,8 @@ export function createConsole() {
   const patch = { from: stripX(INITIAL_PATCH), to: stripX(INITIAL_PATCH), t: 1 };
   let entry = HOME;
   let portrait = false;
+  let aspectRatio = 1.6;
+  let goalEnvironment = STEEL.environment;
   let drag = null;
   let swipe = null;
   let lastStep = 0;
@@ -243,9 +251,11 @@ export function createConsole() {
   let last = 0;
 
   function aim() {
-    const view = views(entry, portrait);
+    const view = views(entry, portrait, aspectRatio);
     goalPos.set(...view.position);
     goalTarget.set(...view.target);
+    goalUp.set(...(view.up ?? [0, 1, 0]));
+    goalEnvironment = view.environment ?? STEEL.environment;
   }
 
   function refresh() {
@@ -325,6 +335,7 @@ export function createConsole() {
   aim();
   base.copy(goalPos);
   target.copy(goalTarget);
+  camera.up.copy(goalUp);
   camera.position.copy(base);
   camera.lookAt(target);
   hint.textContent = matchMedia('(pointer: coarse)').matches ? 'Swipe to start. Slide a fader to read.' : 'Scroll to start. Slide a fader to read.';
@@ -336,17 +347,20 @@ export function createConsole() {
     camera,
     base,
     target,
-    environment: STEEL.environment,
+    environment: goalEnvironment,
     bloom: STEEL.bloom,
     parallax: 0.3,
     shadowsDirty: true,
     layout(aspect) {
       const next = aspect < 0.9;
-      if (next === portrait) return;
+      const flipped = next !== portrait;
       portrait = next;
+      aspectRatio = aspect;
       aim();
+      if (!flipped) return;
       base.copy(goalPos);
       target.copy(goalTarget);
+      camera.up.copy(goalUp);
     },
     goTo(next, stop = 0) {
       select(next);
@@ -355,6 +369,8 @@ export function createConsole() {
     snap() {
       base.copy(goalPos);
       target.copy(goalTarget);
+      camera.up.copy(goalUp);
+      scene.environmentIntensity = goalEnvironment;
       controls.forEach((control) => { control.value = control.goal; });
       patch.t = 1;
       updateCable(patch.to, 0);
@@ -434,13 +450,15 @@ export function createConsole() {
       leanTarget.copy(goalTarget);
       const neighbor = ROUTE[ROUTE.indexOf(entry) + Math.sign(wheel)];
       if (neighbor !== undefined) {
-        const view = views(neighbor, portrait);
+        const view = views(neighbor, portrait, aspectRatio);
         const amount = (Math.abs(wheel) / WHEEL_TRAVEL) * PEEK;
         leanPos.lerp(point.set(...view.position), amount);
         leanTarget.lerp(point.set(...view.target), amount);
       }
       base.lerp(leanPos, ease);
       target.lerp(leanTarget, ease);
+      camera.up.lerp(goalUp, ease).normalize();
+      scene.environmentIntensity += (goalEnvironment - scene.environmentIntensity) * ease;
       controls.forEach((control) => {
         if (Math.abs(control.goal - control.value) > 0.001) this.shadowsDirty = true;
         control.value += (control.goal - control.value) * (1 - Math.exp(-dt * 16));
