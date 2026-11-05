@@ -112,8 +112,10 @@ function start() {
 
 function show() {
   const on = playable();
-  button.textContent = on ? 'SOUND ON' : 'SOUND OFF';
+  const label = on ? 'Sound on' : 'Sound off';
   button.setAttribute('aria-pressed', String(on));
+  button.setAttribute('aria-label', label);
+  button.title = label;
 }
 
 function apply() {
