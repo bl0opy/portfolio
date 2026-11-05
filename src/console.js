@@ -33,6 +33,7 @@ const hint = document.querySelector('#hint');
 const nav = document.querySelector('#nav');
 const previousButton = document.querySelector('#previous');
 const nextButton = document.querySelector('#next');
+const homeButton = document.querySelector('#home');
 
 const stopValue = (entry, stop) => stop / (CONTENT[entry].stops.length - 1);
 const nearestStop = (entry, value) => Math.round(value * (CONTENT[entry].stops.length - 1));
@@ -305,6 +306,7 @@ export function createConsole() {
     displayMap.needsUpdate = true;
     previousButton.disabled = entry === ROUTE[0];
     nextButton.disabled = entry === ROUTE[ROUTE.length - 1];
+    homeButton.disabled = entry === MASTER;
     if (entry === HOME) hidePanel();
     else showPanel(entry, stops[entry], (stop) => setStop(entry, stop));
   }
@@ -394,6 +396,7 @@ export function createConsole() {
   hint.hidden = false;
   previousButton.addEventListener('click', () => step(-1));
   nextButton.addEventListener('click', () => step(1));
+  homeButton.addEventListener('click', () => select(MASTER));
   nav.hidden = false;
   refresh();
 
