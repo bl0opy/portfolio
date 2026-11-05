@@ -193,7 +193,7 @@ export const CONTENT = [
       },
       {
         label: 'WORK',
-        text: 'What I do outside these channels:',
+        text: 'What I do outside these projects:',
         specs: [
           ['Smith+Nephew', 'ML and CV intern for surgical robotics, two summers. ResNet-50 pressure ulcer staging at 74% vs 67% clinician accuracy on high-confidence predictions'],
           ['Emanate', 'Founder. Interactive concert visuals in C++ and Python: gesture-controlled granular synthesis and projection mapping'],

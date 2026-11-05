@@ -73,7 +73,7 @@ function identity(screen) {
 }
 
 function channel(screen, entry, index, stopIndex) {
-  screen.text(`CH 0${index + 1}`, LEFT, 12, DIM);
+  screen.text(`PROJECT 0${index + 1}`, LEFT, 12, DIM);
   const count = `${stopIndex + 1}/${entry.stops.length}`;
   screen.text(count, COLS - LEFT - count.length * 6 + 1, 12, DIM);
   screen.text(entry.title, LEFT, 28, BRIGHT, 2);

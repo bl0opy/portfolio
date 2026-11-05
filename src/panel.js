@@ -18,7 +18,7 @@ export function showPanel(entry, stopIndex, onStop) {
     `<button type="button" data-stop="${j}" aria-pressed="${j === stopIndex}">${stop.label}</button>`
   )).join('');
   root.innerHTML = `
-    <header><span>${project.code ?? `CH 0${entry + 1}`}</span><span>${escape(project.tag)}</span></header>
+    <header><span>${project.code ?? `PROJECT 0${entry + 1}`}</span><span>${escape(project.tag)}</span></header>
     <h2 class="${project.title.length > 12 ? 'long' : ''}">${escape(project.title)}</h2>
     <div class="stop">${body(project.stops[stopIndex])}</div>
     <nav class="rail" aria-label="Sections">${rail}</nav>`;
