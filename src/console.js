@@ -28,6 +28,9 @@ const INITIAL_PATCH = 2;
 const ROUTE = [HOME, MASTER, ...PROJECTS.map((_, i) => i)];
 const stillMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const hint = document.querySelector('#hint');
+const nav = document.querySelector('#nav');
+const previous = document.querySelector('#previous');
+const next = document.querySelector('#next');
 
 const stopValue = (entry, stop) => stop / (CONTENT[entry].stops.length - 1);
 const nearestStop = (entry, value) => Math.round(value * (CONTENT[entry].stops.length - 1));
@@ -261,6 +264,8 @@ export function createConsole() {
   function refresh() {
     drawDisplay(displayCtx, entry, entry === HOME ? 0 : stops[entry]);
     displayMap.needsUpdate = true;
+    previous.disabled = entry === ROUTE[0];
+    next.disabled = entry === ROUTE[ROUTE.length - 1];
     if (entry === HOME) hidePanel();
     else showPanel(entry, stops[entry], (stop) => setStop(entry, stop));
   }
@@ -340,6 +345,9 @@ export function createConsole() {
   camera.lookAt(target);
   hint.textContent = matchMedia('(pointer: coarse)').matches ? 'Swipe to start. Slide a fader to read.' : 'Scroll to start. Slide a fader to read.';
   hint.hidden = false;
+  previous.addEventListener('click', () => step(-1));
+  next.addEventListener('click', () => step(1));
+  nav.hidden = false;
   refresh();
 
   return {

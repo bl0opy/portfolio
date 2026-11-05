@@ -1,6 +1,6 @@
 # portfolio
 
-Personal site, built as a three.js mixing console. Scroll moves between the name strip and six project channels. Each channel's fader, or the master knob on the name strip, steps through that section's content.
+Personal site, built as a three.js mixing console. Scroll moves between the name strip and six project channels. Each channel's fader, or the master knob on the name strip, steps through that section's content. Arrow buttons on the mixer move between channels too.
 
 No build step. Three.js and fonts load from CDNs.
 
