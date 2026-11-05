@@ -21,6 +21,8 @@ const pointer = new THREE.Vector2();
 const eased = new THREE.Vector2();
 const clock = new THREE.Clock();
 const ndc = new THREE.Vector2();
+const panel = document.querySelector('#panel');
+const PANEL_SWIPE = 60;
 let quality = Math.min(devicePixelRatio, 1.5);
 let frames = 0;
 let sampleStart = 0;
@@ -97,11 +99,38 @@ function dispatch(type, e) {
     dispatch(type, e);
   });
 });
+const wheelPixels = (e) => e.deltaY * [1, 40, innerHeight][e.deltaMode];
+
+function textCanScroll(direction) {
+  const text = panel.querySelector('.stop');
+  return direction > 0 ? text.scrollHeight - text.clientHeight - text.scrollTop > 1 : text.scrollTop > 1;
+}
+
 renderer.domElement.addEventListener('wheel', (e) => {
   e.preventDefault();
-  const unit = [1, 40, innerHeight][e.deltaMode];
-  mixer.onWheel(e.deltaY * unit);
+  mixer.onWheel(wheelPixels(e));
 }, { passive: false });
+panel.addEventListener('wheel', (e) => {
+  const delta = wheelPixels(e);
+  if (mixer.onPanelWheel(delta, textCanScroll(Math.sign(delta)))) e.preventDefault();
+}, { passive: false });
+
+let touchY = null;
+panel.addEventListener('touchstart', (e) => {
+  touchY = e.touches[0].clientY;
+}, { passive: true });
+panel.addEventListener('touchmove', (e) => {
+  if (touchY === null) return;
+  const y = e.touches[0].clientY;
+  const travel = touchY - y;
+  if (textCanScroll(Math.sign(travel))) {
+    touchY = y;
+    return;
+  }
+  if (Math.abs(travel) < PANEL_SWIPE) return;
+  mixer.moveStop(Math.sign(travel));
+  touchY = null;
+}, { passive: true });
 addEventListener('keydown', (e) => mixer.onKey(e.key));
 addEventListener('resize', () => fit());
 addEventListener('pointermove', (e) => {

@@ -16,6 +16,8 @@ const KNOB_SWEEP = Math.PI * 1.5;
 const KNOB_NOTCHES = 10;
 const STEP_COOLDOWN = 600;
 const WHEEL_TRAVEL = 300;
+const PANEL_WHEEL_TRAVEL = 200;
+const PANEL_LEAN = 0.35;
 const WHEEL_QUIET = 140;
 const WHEEL_MAX_LOCK = 2600;
 const WHEEL_NEW_SWIPE = 30;
@@ -29,8 +31,8 @@ const ROUTE = [HOME, MASTER, ...PROJECTS.map((_, i) => i)];
 const stillMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const hint = document.querySelector('#hint');
 const nav = document.querySelector('#nav');
-const previous = document.querySelector('#previous');
-const next = document.querySelector('#next');
+const previousButton = document.querySelector('#previous');
+const nextButton = document.querySelector('#next');
 
 const stopValue = (entry, stop) => stop / (CONTENT[entry].stops.length - 1);
 const nearestStop = (entry, value) => Math.round(value * (CONTENT[entry].stops.length - 1));
@@ -39,6 +41,46 @@ function meterSignal(t, i, base, drive) {
   const beat = (t * 2.2 + i * 0.37) % 1;
   const wobble = 0.5 + 0.5 * Math.sin(t * 7.3 + i) * Math.sin(t * 3.1 + i * 2);
   return Math.min(1, (0.25 + 0.75 * base * drive) * (0.3 + 0.75 * Math.exp(-beat * 4) + 0.35 * wobble));
+}
+
+function wheelGesture(travel, onStep) {
+  let total = 0;
+  let lastEvent = 0;
+  let lastSize = 0;
+  let lastFired = 0;
+  let settling = false;
+  return {
+    get total() { return total; },
+    locked(delta) {
+      const now = performance.now();
+      const gap = now - lastEvent;
+      lastEvent = now;
+      const size = Math.abs(delta);
+      const rising = size > WHEEL_NEW_SWIPE && size > lastSize * 2;
+      lastSize = size;
+      if (!settling) return false;
+      const held = now - lastFired;
+      if (held < STEP_COOLDOWN || (gap < WHEEL_QUIET && !rising && held < WHEEL_MAX_LOCK)) return true;
+      settling = false;
+      return false;
+    },
+    feed(delta) {
+      if (this.locked(delta)) return;
+      if (Math.sign(delta) !== Math.sign(total)) total = 0;
+      total += delta;
+      if (Math.abs(total) < travel) return;
+      onStep(Math.sign(total));
+      lastFired = performance.now();
+      total = 0;
+      settling = true;
+    },
+    relax(dt) {
+      if (performance.now() - lastEvent > WHEEL_QUIET) total *= Math.exp(-dt * WHEEL_DECAY);
+    },
+    reset() {
+      total = 0;
+    },
+  };
 }
 
 function patchPoints(x, lift) {
@@ -247,10 +289,7 @@ export function createConsole() {
   let drag = null;
   let swipe = null;
   let lastStep = 0;
-  let wheel = 0;
-  let lastWheel = 0;
-  let lastDelta = 0;
-  let settling = false;
+  let lastPanelScroll = 0;
   let last = 0;
 
   function aim() {
@@ -264,8 +303,8 @@ export function createConsole() {
   function refresh() {
     drawDisplay(displayCtx, entry, entry === HOME ? 0 : stops[entry]);
     displayMap.needsUpdate = true;
-    previous.disabled = entry === ROUTE[0];
-    next.disabled = entry === ROUTE[ROUTE.length - 1];
+    previousButton.disabled = entry === ROUTE[0];
+    nextButton.disabled = entry === ROUTE[ROUTE.length - 1];
     if (entry === HOME) hidePanel();
     else showPanel(entry, stops[entry], (stop) => setStop(entry, stop));
   }
@@ -304,6 +343,14 @@ export function createConsole() {
     lastStep = now;
     step(direction);
   }
+
+  function moveStop(direction) {
+    if (entry === HOME) return;
+    setStop(entry, THREE.MathUtils.clamp(stops[entry] + direction, 0, CONTENT[entry].stops.length - 1));
+  }
+
+  const channels = wheelGesture(WHEEL_TRAVEL, throttledStep);
+  const sections = wheelGesture(PANEL_WHEEL_TRAVEL, moveStop);
 
   function updateCable(x, lift) {
     unit.remove(patchCable);
@@ -345,8 +392,8 @@ export function createConsole() {
   camera.lookAt(target);
   hint.textContent = matchMedia('(pointer: coarse)').matches ? 'Swipe to start. Slide a fader to read.' : 'Scroll to start. Slide a fader to read.';
   hint.hidden = false;
-  previous.addEventListener('click', () => step(-1));
-  next.addEventListener('click', () => step(1));
+  previousButton.addEventListener('click', () => step(-1));
+  nextButton.addEventListener('click', () => step(1));
   nav.hidden = false;
   refresh();
 
@@ -384,31 +431,33 @@ export function createConsole() {
       updateCable(patch.to, 0);
       this.shadowsDirty = true;
     },
+    moveStop,
     onWheel(delta) {
+      channels.feed(delta);
+    },
+    // Returns true when the event moved the fader, false when the panel text should scroll natively.
+    onPanelWheel(delta, canScroll) {
       const now = performance.now();
-      const gap = now - lastWheel;
-      lastWheel = now;
-      const size = Math.abs(delta);
-      const rising = size > WHEEL_NEW_SWIPE && size > lastDelta * 2;
-      lastDelta = size;
-      if (settling) {
-        const held = now - lastStep;
-        if (held < STEP_COOLDOWN || (gap < WHEEL_QUIET && !rising && held < WHEEL_MAX_LOCK)) return;
-        settling = false;
+      if (sections.locked(delta)) return true;
+      if (canScroll) {
+        lastPanelScroll = now;
+        sections.reset();
+        return false;
       }
-      if (Math.sign(delta) !== Math.sign(wheel)) wheel = 0;
-      wheel += delta;
-      if (Math.abs(wheel) < WHEEL_TRAVEL) return;
-      throttledStep(Math.sign(wheel));
-      wheel = 0;
-      settling = true;
+      // Momentum from scrolling the text to its end shouldn't carry on into the fader.
+      if (now - lastPanelScroll < WHEEL_QUIET) {
+        lastPanelScroll = now;
+        return true;
+      }
+      sections.feed(delta);
+      return true;
     },
     onKey(key) {
       if (key === 'ArrowRight') step(1);
       else if (key === 'ArrowLeft') step(-1);
       else if (key === 'Escape') select(HOME);
-      else if (entry !== HOME && key === 'ArrowDown') setStop(entry, Math.min(stops[entry] + 1, CONTENT[entry].stops.length - 1));
-      else if (entry !== HOME && key === 'ArrowUp') setStop(entry, Math.max(stops[entry] - 1, 0));
+      else if (key === 'ArrowDown') moveStop(1);
+      else if (key === 'ArrowUp') moveStop(-1);
     },
     onPointer(type, e, ndc) {
       if (type === 'pointerdown') {
@@ -453,13 +502,14 @@ export function createConsole() {
       const dt = t > last ? Math.min(t - last, 0.1) : 0.016;
       last = t;
       const ease = 1 - Math.exp(-dt * 3.2);
-      if (performance.now() - lastWheel > WHEEL_QUIET) wheel *= Math.exp(-dt * WHEEL_DECAY);
+      channels.relax(dt);
+      sections.relax(dt);
       leanPos.copy(goalPos);
       leanTarget.copy(goalTarget);
-      const neighbor = ROUTE[ROUTE.indexOf(entry) + Math.sign(wheel)];
+      const neighbor = ROUTE[ROUTE.indexOf(entry) + Math.sign(channels.total)];
       if (neighbor !== undefined) {
         const view = views(neighbor, portrait, aspectRatio);
-        const amount = (Math.abs(wheel) / WHEEL_TRAVEL) * PEEK;
+        const amount = (Math.abs(channels.total) / WHEEL_TRAVEL) * PEEK;
         leanPos.lerp(point.set(...view.position), amount);
         leanTarget.lerp(point.set(...view.target), amount);
       }
@@ -467,10 +517,12 @@ export function createConsole() {
       target.lerp(leanTarget, ease);
       camera.up.lerp(goalUp, ease).normalize();
       scene.environmentIntensity += (goalEnvironment - scene.environmentIntensity) * ease;
-      controls.forEach((control) => {
+      const lean = entry === HOME ? 0 : (sections.total / PANEL_WHEEL_TRAVEL) * stopValue(entry, 1) * PANEL_LEAN;
+      if (Math.abs(lean) > 0.001) this.shadowsDirty = true;
+      controls.forEach((control, i) => {
         if (Math.abs(control.goal - control.value) > 0.001) this.shadowsDirty = true;
         control.value += (control.goal - control.value) * (1 - Math.exp(-dt * 16));
-        control.place(control.value);
+        control.place(THREE.MathUtils.clamp(control.value + (i === entry ? lean : 0), 0, 1));
         const notch = Math.round(control.value * control.notches);
         if (notch !== control.notch) {
           control.notch = notch;
