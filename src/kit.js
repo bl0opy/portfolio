@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export const PROJECTS = [
-  { name: 'Voice Agent', commits: 108 },
+  { name: 'Claude Notch', commits: 112 },
   { name: 'Mic Iso', commits: 22 },
   { name: 'Floor Piano', commits: 20 },
   { name: 'synqd', commits: 177 },

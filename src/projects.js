@@ -1,26 +1,26 @@
 // One entry per mixer channel. Each stop is a detent on that channel's fader, top to bottom.
 export const CONTENT = [
   {
-    title: 'Voice Agent',
-    tag: 'Swift, Python, pipecat',
+    title: 'Claude Notch',
+    tag: 'Swift, Python, Claude Code',
     stops: [
       {
         label: 'WHAT',
-        text: 'Push-to-talk voice layer for Claude Code, in the MacBook notch. Doubles as a control plane for every Claude Code session on the machine: roster, tokens and permission prompts in one place.',
+        text: 'A companion for Claude Code in the MacBook notch. It watches every session on the Mac, the desktop app\'s included, and brings what needs you to the notch: permission prompts to answer, each session\'s chat, a line when a long turn ends, and replies typed from any app.',
       },
       {
         label: 'ARCH',
-        text: 'Three processes on separate ports, so any one can die without taking the others down.',
+        text: 'Three processes on separate ports, so any one can die without taking the others down. The daemon and notch run at login.',
         specs: [
-          ['Shell', 'SwiftUI notch panel, hotkeys, push-to-talk'],
-          ['Voice', 'pipecat pipeline, ws :8765'],
+          ['Shell', 'SwiftUI notch panel, approval cards, hotkeys'],
           ['Daemon', 'Roster, approval inbox, hosted ptys; ws :8767, tcp :8766, http :8768'],
           ['Hook', 'notch_hook.py in each session, one question and one answer over tcp'],
+          ['Voice', 'pipecat pipeline, ws :8765, paused'],
         ],
       },
       {
         label: 'SPEECH',
-        text: 'Both directions run locally. Hold-to-talk marks the end of a turn, so the model only transcribes a bounded buffer on key-up. Measured on an M1 Max:',
+        text: 'It started as a voice agent, and the speech pipeline is still in the repo, off by default for now. Both directions run locally, and hold-to-talk marks the end of a turn, so the model only transcribes a bounded buffer on key-up. Measured on an M1 Max:',
         specs: [
           ['STT', 'parakeet-tdt-0.6b-v3 on MLX'],
           ['Key-up to text', '57 ms for 0.7 s of audio, 86 ms for 3.4 s'],
@@ -28,6 +28,7 @@ export const CONTENT = [
           ['First audio', '269 to 709 ms, by sentence length'],
         ],
       },
+      { label: 'LINKS', links: [{ label: 'Source code', url: 'https://github.com/bl0opy/claude-notch' }] },
     ],
   },
   {
