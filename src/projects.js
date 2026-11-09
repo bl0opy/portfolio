@@ -94,7 +94,7 @@ export const CONTENT = [
         links: [
           { label: 'Source code', url: 'https://github.com/bl0opy/floor-piano' },
           { label: 'emanate.studio', url: 'https://www.emanate.studio/' },
-          { label: 'Emanate gesture synth demo', url: 'https://youtube.com/shorts/_eDrTClHqNM?feature=share' },
+          { label: 'Live Demo', url: 'https://youtube.com/shorts/_eDrTClHqNM?feature=share' },
         ],
       },
     ],
