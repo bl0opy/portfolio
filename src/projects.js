@@ -32,33 +32,34 @@ export const CONTENT = [
     ],
   },
   {
-    title: 'Mic Iso',
-    tag: 'Python, NumPy, real-time DSP',
+    title: 'synqd',
+    tag: 'Swift, WidgetKit, Supabase',
     stops: [
       {
         label: 'WHAT',
-        text: 'Voice isolation for close-talking mics, without ML. It uses the proximity effect: a cardioid mic held close captures a large 80 to 300 Hz boost that distant voices and room noise lack.',
+        text: 'Paired iOS app and widgets that share a partner’s live time, status and location. Launched on TestFlight to 30 users in the first week, shipping their requests across 4+ builds.',
       },
       {
-        label: 'CHAIN',
-        text: 'Detection and gating run on different bands. Below 500 Hz always passes, so a false trigger only bleeds highs.',
+        label: 'SYNC',
+        text: 'Postgres on Supabase is the source of truth. Location updates reach the partner in under a second.',
         specs: [
-          ['Sidechain', 'Bandpass 80 to 300 Hz, drives the gate'],
-          ['Split', 'Crossover at 500 Hz'],
-          ['Gated', 'High band only, then recombined'],
-          ['Output', 'Fixed-threshold noise gate cleanup'],
+          ['Live', 'Realtime subscription on the partner’s profile row'],
+          ['Background', 'DB trigger, Edge Function, silent APNs push'],
+          ['Fallback', 'BGAppRefreshTask and scenePhase refresh'],
+          ['Auth', 'Sign in with Apple, 6-character invite pairing via RPC'],
         ],
       },
       {
-        label: 'GATE',
-        text: 'The adaptive gate tracks a noise floor that only falls, and opens at a multiple of it. Defaults, tuned in a Flask and Socket.IO gate lab:',
+        label: 'WIDGET',
+        text: 'The app and the WidgetKit extension are separate processes, so they share a model through an App Group.',
         specs: [
-          ['Threshold', 'Floor x 5.0, starting at -60 dBFS'],
-          ['Detector', '50 ms RMS window'],
-          ['Envelope', '5 ms attack, 180 ms hold, 110 ms release'],
-          ['Buffer', '512 samples at 44.1 kHz'],
+          ['Shared', 'JSON and UserDefaults in an App Group'],
+          ['Surfaces', 'Medium and Lock Screen widgets'],
+          ['Action', 'AppIntent sends a push from the widget'],
+          ['State', 'Five states from each partner’s own wake and sleep hours'],
         ],
       },
+      { label: 'LINKS', links: [{ label: 'mysynqd.com', url: 'https://mysynqd.com/' }] },
     ],
   },
   {
@@ -99,58 +100,6 @@ export const CONTENT = [
     ],
   },
   {
-    title: 'synqd',
-    tag: 'Swift, WidgetKit, Supabase',
-    stops: [
-      {
-        label: 'WHAT',
-        text: 'Paired iOS app and widgets that share a partner’s live time, status and location. Launched on TestFlight to 30 users in the first week, shipping their requests across 4+ builds.',
-      },
-      {
-        label: 'SYNC',
-        text: 'Postgres on Supabase is the source of truth. Location updates reach the partner in under a second.',
-        specs: [
-          ['Live', 'Realtime subscription on the partner’s profile row'],
-          ['Background', 'DB trigger, Edge Function, silent APNs push'],
-          ['Fallback', 'BGAppRefreshTask and scenePhase refresh'],
-          ['Auth', 'Sign in with Apple, 6-character invite pairing via RPC'],
-        ],
-      },
-      {
-        label: 'WIDGET',
-        text: 'The app and the WidgetKit extension are separate processes, so they share a model through an App Group.',
-        specs: [
-          ['Shared', 'JSON and UserDefaults in an App Group'],
-          ['Surfaces', 'Medium and Lock Screen widgets'],
-          ['Action', 'AppIntent sends a push from the widget'],
-          ['State', 'Five states from each partner’s own wake and sleep hours'],
-        ],
-      },
-      { label: 'LINKS', links: [{ label: 'mysynqd.com', url: 'https://mysynqd.com/' }] },
-    ],
-  },
-  {
-    title: 'Descant',
-    tag: 'Electron, Monaco, Python',
-    stops: [
-      {
-        label: 'WHAT',
-        text: 'A desktop editor with Claude Code as a native side panel, not a terminal hosting the CLI. Monaco, ripgrep search, source control and a real shell, with a context inspector over session history.',
-      },
-      {
-        label: 'AGENT',
-        text: 'A chat is one long-lived headless process. It cannot ask for permission mid-stream, so approving restarts it on the same session with one more rule.',
-        specs: [
-          ['Process', 'claude -p with stream-json in and out'],
-          ['Approve', '--resume <session> --allowedTools <rule>'],
-          ['Scope', 'Bash(git status:*), not all of Bash'],
-          ['Persist', 'Always allow writes .claude/settings.local.json'],
-        ],
-      },
-      { label: 'LINKS', links: [{ label: 'Source code', url: 'https://github.com/bl0opy/descant-ide' }] },
-    ],
-  },
-  {
     title: 'Solo.ai',
     tag: 'Swift, LiteRT-LM, on-device ML',
     stops: [
@@ -175,6 +124,66 @@ export const CONTENT = [
           ['Detect', 'Finds personally identifiable information on-device'],
           ['Reformulate', 'Reduces sensitive prompts to the minimum necessary context'],
           ['Escalate', 'Sends high-risk prompts to the user for review'],
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Mic Iso',
+    tag: 'Python, NumPy, real-time DSP',
+    stops: [
+      {
+        label: 'WHAT',
+        text: 'Voice isolation for close-talking mics, without ML. It uses the proximity effect: a cardioid mic held close captures a large 80 to 300 Hz boost that distant voices and room noise lack.',
+      },
+      {
+        label: 'CHAIN',
+        text: 'Detection and gating run on different bands. Below 500 Hz always passes, so a false trigger only bleeds highs.',
+        specs: [
+          ['Sidechain', 'Bandpass 80 to 300 Hz, drives the gate'],
+          ['Split', 'Crossover at 500 Hz'],
+          ['Gated', 'High band only, then recombined'],
+          ['Output', 'Fixed-threshold noise gate cleanup'],
+        ],
+      },
+      {
+        label: 'GATE',
+        text: 'The adaptive gate tracks a noise floor that only falls, and opens at a multiple of it. Defaults, tuned in a Flask and Socket.IO gate lab:',
+        specs: [
+          ['Threshold', 'Floor x 5.0, starting at -60 dBFS'],
+          ['Detector', '50 ms RMS window'],
+          ['Envelope', '5 ms attack, 180 ms hold, 110 ms release'],
+          ['Buffer', '512 samples at 44.1 kHz'],
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Lockword',
+    tag: 'AI tooling, not public yet',
+    stops: [
+      {
+        label: 'WHAT',
+        text: 'Line-level locks for AI agents. They can read what you lock and rewrite everything around it, but they can\'t change a locked word, and only a person can unlock one. It isn\'t public yet, so this covers what it does rather than how.',
+      },
+      {
+        label: 'CODE',
+        text: 'One comment locks a function, class, method or region, so agents can run without approving every edit. The same change always gets the same verdict, and anything it can\'t verify is rejected.',
+        specs: [
+          ['Mark', '# @lock, right in the code'],
+          ['Agents', 'Claude Code and Codex are stopped before a locked edit lands'],
+          ['Other tools', 'Cursor, Copilot, Aider and hand edits are caught at commit and push'],
+          ['Pull requests', 'A required GitHub check, including PRs from cloud agents'],
+        ],
+      },
+      {
+        label: 'DOCS',
+        text: 'A desktop app brings the same locks to documents, spreadsheets and slides. Hand AI the whole file and review only its suggestions.',
+        specs: [
+          ['Lock', 'A sentence, a clause, a cell or slide text'],
+          ['Formats', 'DOCX, MD, TXT, XLSX, CSV, PPTX, PDF'],
+          ['Review', 'Changes arrive inline as a diff to accept or reject'],
+          ['Verify', 'Check any exported copy to see each lock is still intact'],
         ],
       },
     ],

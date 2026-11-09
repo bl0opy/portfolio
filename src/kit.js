@@ -2,11 +2,11 @@ import * as THREE from 'three';
 
 export const PROJECTS = [
   { name: 'Claude Notch', commits: 112 },
-  { name: 'Mic Iso', commits: 22 },
-  { name: 'Floor Piano', commits: 20 },
   { name: 'synqd', commits: 177 },
-  { name: 'Descant', commits: 35 },
+  { name: 'Floor Piano', commits: 20 },
   { name: 'Solo.ai', commits: 95 },
+  { name: 'Mic Iso', commits: 22 },
+  { name: 'Lockword', commits: 108 },
 ];
 
 export const satin = (color, roughness = 0.5, clearcoat = 0.2) =>
