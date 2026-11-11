@@ -37,7 +37,7 @@ export const CONTENT = [
     stops: [
       {
         label: 'WHAT',
-        text: 'Paired iOS app and widgets that share a partner’s live time, status and location. Launched on TestFlight to 30 users in the first week, shipping their requests across 4+ builds.',
+        text: 'Paired iOS app and widgets that share a partner’s live time, status and location. Live on the App Store since November 2026, after a TestFlight beta that reached 30 users in its first week and shipped their requests across 4+ builds.',
       },
       {
         label: 'SYNC',
@@ -55,11 +55,20 @@ export const CONTENT = [
         specs: [
           ['Shared', 'JSON and UserDefaults in an App Group'],
           ['Surfaces', 'Medium and Lock Screen widgets'],
-          ['Action', 'AppIntent sends a push from the widget'],
+          ['Action', 'AppIntent sends a miss-you push from the widget'],
+          ['Nudge', 'pg_cron nudges once if a miss-you goes unanswered'],
+          ['Clips', 'Five-second clip takes over the widget until watched'],
+          ['Streak', 'Daily clip streak shown as a flame on the widget'],
           ['State', 'Five states from each partner’s own wake and sleep hours'],
         ],
       },
-      { label: 'LINKS', links: [{ label: 'mysynqd.com', url: 'https://mysynqd.com/' }] },
+      {
+        label: 'LINKS',
+        links: [
+          { label: 'App Store', url: 'https://apps.apple.com/app/synqd/id6780106702' },
+          { label: 'mysynqd.com', url: 'https://mysynqd.com/' },
+        ],
+      },
     ],
   },
   {
