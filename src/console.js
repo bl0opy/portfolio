@@ -11,6 +11,7 @@ import { drawDisplay } from './led.js';
 import { CONTENT, MASTER } from './projects.js';
 import { showPanel, hidePanel } from './panel.js';
 import { plugIn, plugOut, knobClick, faderTick } from './sound.js';
+import { setStage } from './guide.js';
 
 const KNOB_SWEEP = Math.PI * 1.5;
 const KNOB_NOTCHES = 10;
@@ -29,7 +30,6 @@ const HOME = -1;
 const INITIAL_PATCH = 2;
 const ROUTE = [HOME, MASTER, ...PROJECTS.map((_, i) => i)];
 const stillMotion = matchMedia('(prefers-reduced-motion: reduce)');
-const hint = document.querySelector('#hint');
 const nav = document.querySelector('#nav');
 const previousButton = document.querySelector('#previous');
 const nextButton = document.querySelector('#next');
@@ -309,6 +309,14 @@ export function createConsole() {
     homeButton.disabled = entry === MASTER;
     if (entry === HOME) hidePanel();
     else showPanel(entry, stops[entry], (stop) => setStop(entry, stop));
+    setStage(stageOf(entry), `${entry}:${entry === HOME ? 0 : stops[entry]}`);
+  }
+
+  function stageOf(i) {
+    if (i === HOME) return 'home';
+    if (stops[i] < CONTENT[i].stops.length - 1) return 'card';
+    if (i === MASTER) return 'master';
+    return i === ROUTE[ROUTE.length - 1] ? 'end' : 'next';
   }
 
   function setStop(i, stop) {
@@ -330,7 +338,6 @@ export function createConsole() {
       patch.t = 0;
       plugOut();
     }
-    hint.hidden = entry !== HOME;
     refresh();
   }
 
@@ -392,8 +399,6 @@ export function createConsole() {
   camera.up.copy(goalUp);
   camera.position.copy(base);
   camera.lookAt(target);
-  hint.textContent = matchMedia('(pointer: coarse)').matches ? 'Swipe to start. Slide a fader to read.' : 'Scroll to start. Slide a fader to read.';
-  hint.hidden = false;
   previousButton.addEventListener('click', () => step(-1));
   nextButton.addEventListener('click', () => step(1));
   homeButton.addEventListener('click', () => select(MASTER));

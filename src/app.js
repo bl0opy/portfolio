@@ -6,6 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createConsole } from './console.js';
 import { initSound } from './sound.js';
+import { initGuide, guideOpen } from './guide.js';
 
 await Promise.all(['800 100px Archivo', '500 30px "Geist Mono"', '76px "Permanent Marker"'].map((f) => document.fonts.load(f)));
 
@@ -131,13 +132,16 @@ panel.addEventListener('touchmove', (e) => {
   mixer.moveStop(Math.sign(travel));
   touchY = null;
 }, { passive: true });
-addEventListener('keydown', (e) => mixer.onKey(e.key));
+addEventListener('keydown', (e) => {
+  if (!guideOpen()) mixer.onKey(e.key);
+});
 addEventListener('resize', () => fit());
 addEventListener('pointermove', (e) => {
   pointer.set((e.clientX / innerWidth) * 2 - 1, 1 - (e.clientY / innerHeight) * 2);
 });
 
 initSound();
+initGuide();
 fit();
 renderer.setAnimationLoop((now) => {
   frame(clock.getElapsedTime());

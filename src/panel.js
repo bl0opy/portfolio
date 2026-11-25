@@ -42,7 +42,7 @@ export function renderFallback() {
       <p class="tag">${escape(project.tag)}</p>
       ${project.stops.map(body).join('')}
     </section>`).join('');
-  document.querySelector('#hint').hidden = true;
+  document.querySelector('#coach').hidden = true;
   const page = document.createElement('main');
   page.id = 'fallback';
   page.innerHTML = sections;
